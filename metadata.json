@@ -1,0 +1,6 @@
+{
+  "name": "ErrorCodeWiki",
+  "description": "A Wikipedia-style searchable database of error codes across software, hardware, vehicles, appliances, and networking equipment.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

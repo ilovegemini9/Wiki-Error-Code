@@ -1,0 +1,173 @@
+import Link from 'next/link';
+import { db } from '@/lib/db';
+import { Navbar } from '@/components/Navbar';
+import { Footer } from '@/components/Footer';
+import { Breadcrumbs } from '@/components/Breadcrumbs';
+import { Search as SearchIcon, Filter, AlertCircle } from 'lucide-react';
+
+export const dynamic = 'force-dynamic';
+
+interface SearchPageProps {
+  searchParams: Promise<{
+    q?: string;
+    category?: string;
+    brand?: string;
+  }>;
+}
+
+export default async function SearchPage({ searchParams }: SearchPageProps) {
+  const params = await searchParams;
+  const query = params.q || '';
+  const categorySlug = params.category || '';
+  const brandSlug = params.brand || '';
+
+  const { articles, total } = db.getArticles({
+    status: 'published',
+    search: query,
+    categorySlug: categorySlug || undefined,
+    brandSlug: brandSlug || undefined
+  });
+
+  const categories = db.getCategories();
+  const brands = db.getBrands();
+
+  return (
+    <div className="min-h-screen bg-white text-gray-900 font-sans flex flex-col">
+      <Navbar />
+
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+        
+        <Breadcrumbs items={[{ label: 'Search Index', href: '/search' }]} />
+
+        {/* Search Header */}
+        <div className="my-4 pb-4 border-b border-gray-300">
+          <h1 className="font-serif text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <SearchIcon className="w-6 h-6 text-gray-700" />
+            Database Search Results
+          </h1>
+          <p className="text-xs text-gray-600 mt-1 font-mono">
+            Found <strong className="text-gray-900">{total}</strong> matches for query &quot;<span className="text-blue-800 font-bold">{query || 'All Articles'}</span>&quot;
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 my-6">
+          
+          {/* Filters Sidebar */}
+          <aside className="space-y-6">
+            <div className="bg-[#f8f9fa] border border-[#a2a9b1] p-4 text-xs rounded-xs">
+              <div className="font-serif font-bold text-sm text-gray-900 border-b border-gray-300 pb-2 mb-3 flex items-center gap-1.5">
+                <Filter className="w-4 h-4 text-gray-700" />
+                Filter by Category
+              </div>
+
+              <div className="space-y-1">
+                <Link
+                  href={`/search?q=${encodeURIComponent(query)}`}
+                  className={`block px-2 py-1 rounded-xs ${!categorySlug ? 'bg-blue-100 font-bold text-blue-900' : 'text-gray-700 hover:bg-gray-200'}`}
+                >
+                  All Categories
+                </Link>
+                {categories.map((c) => (
+                  <Link
+                    key={c.id}
+                    href={`/search?q=${encodeURIComponent(query)}&category=${c.slug}`}
+                    className={`block px-2 py-1 rounded-xs flex justify-between items-center ${categorySlug === c.slug ? 'bg-blue-100 font-bold text-blue-900' : 'text-gray-700 hover:bg-gray-200'}`}
+                  >
+                    <span>{c.name}</span>
+                    <span className="font-mono text-[10px] text-gray-500">({c.count || 0})</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Brands Filter */}
+            <div className="bg-[#f8f9fa] border border-[#a2a9b1] p-4 text-xs rounded-xs">
+              <div className="font-serif font-bold text-sm text-gray-900 border-b border-gray-300 pb-2 mb-3">
+                Filter by Brand
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {brands.map((b) => (
+                  <Link
+                    key={b.id}
+                    href={`/search?q=${encodeURIComponent(query)}&brand=${b.slug}`}
+                    className={`px-2 py-1 border rounded-xs font-mono text-[11px] ${brandSlug === b.slug ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-800 border-gray-300 hover:border-gray-500'}`}
+                  >
+                    {b.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </aside>
+
+          {/* Search Results List */}
+          <div className="lg:col-span-3 space-y-4">
+            
+            {articles.length === 0 ? (
+              <div className="p-8 text-center bg-[#f8f9fa] border border-[#a2a9b1] rounded-xs space-y-3">
+                <AlertCircle className="w-10 h-10 text-gray-400 mx-auto" />
+                <h3 className="font-serif font-bold text-base text-gray-900">No error codes matched your search</h3>
+                <p className="text-xs text-gray-600 max-w-md mx-auto">
+                  Try searching with just the numerical or hexadecimal code (e.g., <code className="font-mono font-bold bg-gray-200 px-1 py-0.5">0x80070005</code> or <code className="font-mono font-bold bg-gray-200 px-1 py-0.5">P0420</code>).
+                </p>
+                <Link
+                  href="/"
+                  className="inline-block mt-2 px-4 py-2 bg-gray-900 text-white text-xs font-medium rounded-xs hover:bg-gray-800"
+                >
+                  Return to Homepage Directory
+                </Link>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-200 border border-gray-300 bg-white rounded-xs">
+                {articles.map((art) => (
+                  <article key={art.id} className="p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-mono text-xs font-bold px-2 py-0.5 bg-blue-900 text-white rounded-xs">
+                            {art.errorCode}
+                          </span>
+                          <span className="text-xs text-gray-500 font-mono">
+                            {art.deviceType}
+                          </span>
+                          <span className="text-xs text-gray-400 font-mono">
+                            • {art.readingTime}
+                          </span>
+                        </div>
+                        <h2 className="font-serif font-bold text-base text-gray-900 hover:text-blue-700">
+                          <Link href={`/error/${art.slug}`}>
+                            {art.title}
+                          </Link>
+                        </h2>
+                        <p className="text-xs text-gray-600 mt-1 line-clamp-2 leading-relaxed">
+                          {art.shortDefinition}
+                        </p>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {art.keywords.map((kw, idx) => (
+                            <span key={idx} className="bg-gray-100 text-gray-700 px-1.5 py-0.5 text-[10px] font-mono rounded-xs border border-gray-200">
+                              {kw}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <Link
+                        href={`/error/${art.slug}`}
+                        className="shrink-0 px-3 py-1.5 border border-gray-300 text-xs font-medium text-gray-800 hover:bg-gray-100 rounded-xs"
+                      >
+                        View Article
+                      </Link>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+
+          </div>
+
+        </div>
+
+      </main>
+
+      <Footer />
+    </div>
+  );
+}
