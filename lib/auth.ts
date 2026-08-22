@@ -2,16 +2,26 @@ import { cookies } from 'next/headers';
 import crypto from 'crypto';
 
 const COOKIE_NAME = 'ecw_admin_token';
-const SECRET_KEY = process.env.ADMIN_SESSION_SECRET || 'error-code-wiki-default-dev-secret-key-2026';
+
+function getSessionSecret(): string {
+  const configured = process.env.ADMIN_SESSION_SECRET?.trim();
+  if (configured) return configured;
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('ADMIN_SESSION_SECRET must be configured in production.');
+  }
+
+  return 'local-development-only-session-secret';
+}
 
 export function hashPassword(password: string): string {
-  return crypto.createHmac('sha256', SECRET_KEY).update(password).digest('hex');
+  return crypto.createHmac('sha256', getSessionSecret()).update(password).digest('hex');
 }
 
 export function generateSessionToken(username: string): string {
   const timestamp = Date.now();
   const raw = `${username}:${timestamp}`;
-  const hmac = crypto.createHmac('sha256', SECRET_KEY).update(raw).digest('hex');
+  const hmac = crypto.createHmac('sha256', getSessionSecret()).update(raw).digest('hex');
   return Buffer.from(`${raw}:${hmac}`).toString('base64');
 }
 
@@ -23,13 +33,16 @@ export function verifySessionToken(token: string): { valid: boolean; username?: 
 
     const [username, timestampStr, hmac] = parts;
     const raw = `${username}:${timestampStr}`;
-    const expectedHmac = crypto.createHmac('sha256', SECRET_KEY).update(raw).digest('hex');
+    const expectedHmac = crypto.createHmac('sha256', getSessionSecret()).update(raw).digest('hex');
 
     if (hmac !== expectedHmac) return { valid: false };
 
-    // Session valid for 7 days
-    const age = Date.now() - parseInt(timestampStr, 10);
-    if (age > 7 * 24 * 60 * 60 * 1000) return { valid: false };
+    const timestamp = Number(timestampStr);
+    if (!Number.isFinite(timestamp)) return { valid: false };
+
+    const age = Date.now() - timestamp;
+    const maxAge = 7 * 24 * 60 * 60 * 1000;
+    if (age > maxAge || age < -5 * 60 * 1000) return { valid: false };
 
     return { valid: true, username };
   } catch {
@@ -38,10 +51,17 @@ export function verifySessionToken(token: string): { valid: boolean; username?: 
 }
 
 export async function verifyAdminCredentials(user: string, pass: string): Promise<boolean> {
-  const envUser = process.env.ADMIN_USERNAME || 'admin';
-  const envPass = process.env.ADMIN_PASSWORD || '111111';
+  const envUser = process.env.ADMIN_USERNAME?.trim();
+  const envPass = process.env.ADMIN_PASSWORD;
 
-  return user === envUser && pass === envPass;
+  if (process.env.NODE_ENV === 'production' && (!envUser || !envPass)) {
+    throw new Error('ADMIN_USERNAME and ADMIN_PASSWORD must be configured in production.');
+  }
+
+  const expectedUser = envUser || 'admin';
+  const expectedPass = envPass || '111111';
+
+  return user === expectedUser && pass === expectedPass;
 }
 
 export async function setAdminSessionCookie(username: string) {
@@ -51,7 +71,7 @@ export async function setAdminSessionCookie(username: string) {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 7 * 24 * 60 * 60, // 7 days
+    maxAge: 7 * 24 * 60 * 60,
     path: '/'
   });
 }
