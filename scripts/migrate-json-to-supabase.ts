@@ -86,7 +86,7 @@ async function applyMigration(parsed: any) {
         created_at: c.createdAt ? new Date(c.createdAt).toISOString() : undefined,
         updated_at: c.updatedAt ? new Date(c.updatedAt).toISOString() : undefined
       };
-      await supabaseAdmin!.from('categories').upsert(row, { onConflict: ['id'] });
+      await supabaseAdmin!.from('categories').upsert(row, { onConflict: 'id' });
     }
   }
 
@@ -105,7 +105,7 @@ async function applyMigration(parsed: any) {
         created_at: b.createdAt ? new Date(b.createdAt).toISOString() : undefined,
         updated_at: b.updatedAt ? new Date(b.updatedAt).toISOString() : undefined
       };
-      await supabaseAdmin!.from('brands').upsert(row, { onConflict: ['id'] });
+      await supabaseAdmin!.from('brands').upsert(row, { onConflict: 'id' });
     }
   }
 
@@ -118,7 +118,7 @@ async function applyMigration(parsed: any) {
         password_hash: u.passwordHash,
         updated_at: u.updatedAt ? new Date(u.updatedAt).toISOString() : new Date().toISOString()
       };
-      await supabaseAdmin!.from('admin_users').upsert(row, { onConflict: ['id'] });
+      await supabaseAdmin!.from('admin_users').upsert(row, { onConflict: 'id' });
     }
   }
 
@@ -158,7 +158,7 @@ async function applyMigration(parsed: any) {
         ai_generated: !!a.aiGenerated || false,
         raw: a
       };
-      await supabaseAdmin!.from('articles').upsert(row, { onConflict: ['id'] });
+      await supabaseAdmin!.from('articles').upsert(row, { onConflict: 'id' });
     }
   }
 
@@ -172,9 +172,13 @@ async function applyMigration(parsed: any) {
         device: l.device || null,
         model: l.model || null,
         created_at: l.createdAt ? new Date(l.createdAt).toISOString() : new Date().toISOString(),
-        status: l.status || null
+        status: l.status || null,
+        article_id: l.articleId || null,
+        prompt_text: l.promptText || null,
+        response_summary: l.responseSummary || null,
+        usage: l.usage || null
       };
-      await supabaseAdmin!.from('ai_generation_logs').upsert(row, { onConflict: ['id'] });
+      await supabaseAdmin!.from('ai_generation_logs').upsert(row, { onConflict: 'id' });
     }
   }
 
@@ -207,7 +211,7 @@ async function applyMigration(parsed: any) {
       automation_logs: s.automationLogs || null,
       raw_settings: s
     };
-    await supabaseAdmin!.from('global_settings').upsert(row, { onConflict: ['id'] });
+    await supabaseAdmin!.from('global_settings').upsert(row, { onConflict: 'id' });
   }
 }
 
