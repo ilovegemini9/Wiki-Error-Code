@@ -59,7 +59,6 @@ CREATE TABLE IF NOT EXISTS public.articles (
   seo_score INTEGER,
   ai_generated BOOLEAN DEFAULT false,
   raw JSONB,
-  -- For full text search convenience
   tsv tsvector
 );
 
@@ -120,6 +119,15 @@ CREATE INDEX IF NOT EXISTS idx_articles_error_code ON public.articles (lower(err
 CREATE INDEX IF NOT EXISTS idx_articles_language ON public.articles (language);
 CREATE INDEX IF NOT EXISTS idx_articles_status_updated_at ON public.articles (status, updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_ai_logs_created_at ON public.ai_generation_logs (created_at DESC);
+
+-- Protect migrated tables from anon/authenticated clients by default.
+-- The application currently uses the server-side service-role client for migration/admin access.
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.brands ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.articles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ai_generation_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.global_settings ENABLE ROW LEVEL SECURITY;
 
 -- Trigger to keep tsvector up to date for articles (for potential full text search)
 CREATE FUNCTION public.articles_tsv_trigger() RETURNS trigger AS $$
