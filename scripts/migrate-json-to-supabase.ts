@@ -22,21 +22,12 @@ async function validateJsonStructure(obj: any) {
     return errors;
   }
 
-  const rootKeys = ['articles', 'categories', 'brands', 'settings', 'aiLogs', 'adminUsers'];
-  rootKeys.forEach(k => {
-    if (!Object.prototype.hasOwnProperty.call(obj, k)) {
-      // allow missing arrays but report
-      // errors.push(`Missing root key: ${k}`);
-    }
-  });
-
   if (obj.articles && !Array.isArray(obj.articles)) errors.push('articles must be an array');
   if (obj.categories && !Array.isArray(obj.categories)) errors.push('categories must be an array');
   if (obj.brands && !Array.isArray(obj.brands)) errors.push('brands must be an array');
   if (obj.aiLogs && !Array.isArray(obj.aiLogs)) errors.push('aiLogs must be an array');
   if (obj.adminUsers && !Array.isArray(obj.adminUsers)) errors.push('adminUsers must be an array');
 
-  // Minimal article validation sample for reporting
   if (Array.isArray(obj.articles)) {
     obj.articles.forEach((a: any, idx: number) => {
       if (!a.id) errors.push(`Article at index ${idx} missing id`);
@@ -61,7 +52,6 @@ async function runDryRun(parsed: any): Promise<DryRunResult> {
     settings: { present: !!parsed.settings }
   };
 
-  // Additional checks: list first article id/title for quick review
   if (Array.isArray(parsed.articles) && parsed.articles.length > 0) {
     const a = parsed.articles[0];
     console.log(`First article sample: id=${a.id}, slug=${a.slug}, title=${a.title}`);
@@ -70,13 +60,19 @@ async function runDryRun(parsed: any): Promise<DryRunResult> {
   return res;
 }
 
+async function upsertOrThrow(table: string, row: Record<string, unknown>) {
+  const { error } = await supabaseAdmin!.from(table).upsert(row, { onConflict: 'id' });
+  if (error) {
+    throw new Error(`Supabase upsert failed for ${table} (id=${String(row.id)}): ${error.message}`);
+  }
+}
+
 async function applyMigration(parsed: any) {
   if (!supabaseAdmin) throw new Error('Supabase admin client not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
 
-  // Upsert categories
   if (Array.isArray(parsed.categories)) {
     for (const c of parsed.categories) {
-      const row = {
+      await upsertOrThrow('categories', {
         id: c.id,
         name: c.name,
         slug: c.slug,
@@ -85,15 +81,13 @@ async function applyMigration(parsed: any) {
         language: c.language || null,
         created_at: c.createdAt ? new Date(c.createdAt).toISOString() : undefined,
         updated_at: c.updatedAt ? new Date(c.updatedAt).toISOString() : undefined
-      };
-      await supabaseAdmin!.from('categories').upsert(row, { onConflict: 'id' });
+      });
     }
   }
 
-  // Upsert brands
   if (Array.isArray(parsed.brands)) {
     for (const b of parsed.brands) {
-      const row = {
+      await upsertOrThrow('brands', {
         id: b.id,
         name: b.name,
         slug: b.slug,
@@ -104,28 +98,24 @@ async function applyMigration(parsed: any) {
         language: b.language || null,
         created_at: b.createdAt ? new Date(b.createdAt).toISOString() : undefined,
         updated_at: b.updatedAt ? new Date(b.updatedAt).toISOString() : undefined
-      };
-      await supabaseAdmin!.from('brands').upsert(row, { onConflict: 'id' });
+      });
     }
   }
 
-  // Upsert admin users
   if (Array.isArray(parsed.adminUsers)) {
     for (const u of parsed.adminUsers) {
-      const row = {
+      await upsertOrThrow('admin_users', {
         id: u.id,
         username: u.username,
         password_hash: u.passwordHash,
         updated_at: u.updatedAt ? new Date(u.updatedAt).toISOString() : new Date().toISOString()
-      };
-      await supabaseAdmin!.from('admin_users').upsert(row, { onConflict: 'id' });
+      });
     }
   }
 
-  // Upsert articles
   if (Array.isArray(parsed.articles)) {
     for (const a of parsed.articles) {
-      const row = {
+      await upsertOrThrow('articles', {
         id: a.id,
         error_code: a.errorCode,
         title: a.title,
@@ -155,17 +145,15 @@ async function applyMigration(parsed: any) {
         scheduled_for: a.scheduledFor || null,
         views_count: a.viewsCount || 0,
         seo_score: a.seoScore || null,
-        ai_generated: !!a.aiGenerated || false,
+        ai_generated: !!a.aiGenerated,
         raw: a
-      };
-      await supabaseAdmin!.from('articles').upsert(row, { onConflict: 'id' });
+      });
     }
   }
 
-  // Upsert AI logs
   if (Array.isArray(parsed.aiLogs)) {
     for (const l of parsed.aiLogs) {
-      const row = {
+      await upsertOrThrow('ai_generation_logs', {
         id: l.id,
         error_code: l.errorCode || null,
         brand: l.brand || null,
@@ -177,15 +165,13 @@ async function applyMigration(parsed: any) {
         prompt_text: l.promptText || null,
         response_summary: l.responseSummary || null,
         usage: l.usage || null
-      };
-      await supabaseAdmin!.from('ai_generation_logs').upsert(row, { onConflict: 'id' });
+      });
     }
   }
 
-  // Upsert settings as single row id='global'
   if (parsed.settings) {
     const s = parsed.settings;
-    const row = {
+    await upsertOrThrow('global_settings', {
       id: 'global',
       site_name: s.siteName || null,
       site_url: s.siteUrl || null,
@@ -210,8 +196,7 @@ async function applyMigration(parsed: any) {
       automation_count: s.automationCount || null,
       automation_logs: s.automationLogs || null,
       raw_settings: s
-    };
-    await supabaseAdmin!.from('global_settings').upsert(row, { onConflict: 'id' });
+    });
   }
 }
 
@@ -257,7 +242,6 @@ async function main() {
     process.exit(0);
   }
 
-  // Apply path: ensure supabase envs
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in the environment to apply the migration.');
     process.exit(1);
