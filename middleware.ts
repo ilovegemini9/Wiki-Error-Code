@@ -3,14 +3,24 @@ import { NextRequest, NextResponse } from 'next/server';
 const SUPPORTED = new Set(['en', 'fr', 'es', 'de', 'ja', 'it', 'pt', 'nl', 'zh']);
 
 function detectLanguage(request: NextRequest): string {
-  const cookie = request.cookies.get('user_lang')?.value?.toLowerCase().split('-')[0];
-  if (cookie && SUPPORTED.has(cookie)) return cookie;
-
   const header = request.headers.get('accept-language') || '';
-  for (const part of header.split(',')) {
-    const code = part.trim().split(';')[0].toLowerCase().split('-')[0];
-    if (SUPPORTED.has(code)) return code;
+  const candidates = header
+    .split(',')
+    .map((part) => {
+      const [rawTag, ...params] = part.trim().split(';');
+      const tag = rawTag.toLowerCase();
+      const q = params.find((param) => param.trim().startsWith('q='));
+      const quality = q ? Number(q.trim().slice(2)) : 1;
+      return { tag, quality: Number.isFinite(quality) ? quality : 0 };
+    })
+    .filter(({ quality }) => quality > 0)
+    .sort((a, b) => b.quality - a.quality);
+
+  for (const { tag } of candidates) {
+    const language = tag.split('-')[0];
+    if (SUPPORTED.has(language)) return language;
   }
+
   return 'en';
 }
 
@@ -34,12 +44,19 @@ export function middleware(request: NextRequest) {
   const first = pathname.split('/').filter(Boolean)[0]?.toLowerCase();
   if (first && SUPPORTED.has(first)) return NextResponse.next();
 
-  // Root and public routes without a locale are redirected to /<language>/...
-  // based on the visitor's browser language. Unsupported browser languages fall back to /en.
+  // Public routes without a locale always receive a locale path.
+  // Example: fr-FR -> /fr, de-DE -> /de, unsupported -> /en.
   const language = detectLanguage(request);
   const url = request.nextUrl.clone();
   url.pathname = `/${language}${pathname === '/' ? '' : pathname}`;
-  return NextResponse.redirect(url, 307);
+
+  const response = NextResponse.redirect(url, 307);
+  response.cookies.set('site_language', language, {
+    path: '/',
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: 'lax',
+  });
+  return response;
 }
 
 export const config = {
