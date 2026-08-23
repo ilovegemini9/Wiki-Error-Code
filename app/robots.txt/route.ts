@@ -1,19 +1,14 @@
-import { db } from '@/lib/db';
+import { getSupabaseSettings } from '@/lib/supabase-db';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const settings = db.getSettings();
-  const siteUrl = (settings.siteUrl || 'https://errorcodewiki.ai.studio').replace(/\/$/, '');
-  const customRobots = settings.robotsTxt;
+  const settings = await getSupabaseSettings();
+  const siteUrl = (settings.siteUrl || 'https://errorcodewiki.org').replace(/\/$/, '');
+  const customRobots = settings.robotsTxtContent;
 
   if (customRobots && customRobots.trim().length > 10) {
-    return new Response(customRobots, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'public, max-age=86400'
-      }
-    });
+    return new Response(customRobots, { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=86400' } });
   }
 
   const content = `# ErrorCodeWiki Robots & AI Crawler Rules
@@ -25,7 +20,6 @@ Allow: /
 Disallow: /admin
 Disallow: /api/admin
 
-# Explicitly Allow AI Search & Retrieval Crawlers for Page 1 Positioning
 User-agent: GPTBot
 Allow: /
 
@@ -57,11 +51,5 @@ Sitemap: ${siteUrl}/sitemap.xml
 Sitemap: ${siteUrl}/sitemap-images.xml
 `;
 
-  return new Response(content, {
-    headers: {
-      'Content-Type': 'text/plain; charset=utf-8',
-      'Cache-Control': 'public, max-age=86400'
-    }
-  });
+  return new Response(content, { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=86400' } });
 }
-
