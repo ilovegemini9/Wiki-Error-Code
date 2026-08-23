@@ -12,7 +12,7 @@ export interface TopModelDefinition {
   isFree: boolean;
 }
 
-export const TOP_3_FREE_MODELS: TopModelDefinition[] = [
+export const TOP_4_FREE_MODELS: TopModelDefinition[] = [
   {
     id: 'z-ai/glm-5.2:free',
     name: 'Z.ai: GLM 5.2 (free)',
@@ -45,16 +45,21 @@ export const TOP_3_FREE_MODELS: TopModelDefinition[] = [
     rank: 3,
     description: 'Multimodal instruction model with strong multilingual and structured-output support.',
     isFree: true
+  },
+  {
+    id: 'google/gemma-4-31b-it:free',
+    name: 'Google: Gemma 4 31B Instruct (free)',
+    provider: 'Google',
+    badge: '★ #4 General Purpose',
+    context: '256K context',
+    tokens: 'Free',
+    rank: 4,
+    description: 'Strong general-purpose instruction model for technical and multilingual generation.',
+    isFree: true
   }
 ];
 
-export const CASCADE_MODEL_IDS = [
-  'z-ai/glm-5.2:free',
-  'nvidia/nemotron-3-nano-30b-a3b:free',
-  'google/gemma-4-26b-a4b-it:free',
-  'google/gemma-4-31b:free',
-  'thinking-machines/inkling:free'
-];
+export const CASCADE_MODEL_IDS = TOP_4_FREE_MODELS.map((model) => model.id);
 
 export interface AiGenerationOptions {
   prompt: string;
@@ -74,7 +79,7 @@ export interface AiGenerationResult {
 }
 
 /**
- * Five-model OpenRouter cascade for AI article generation.
+ * Four-model OpenRouter cascade for AI article generation.
  * Provider/model failures are isolated so the next model can be attempted.
  * The final Gemini fallback is used only when GEMINI_API_KEY is configured.
  */
