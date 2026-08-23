@@ -39,17 +39,10 @@ export async function POST(req: NextRequest) {
     const row = current as unknown as SettingsRow | null;
     const raw = row?.raw_settings && typeof row.raw_settings === 'object' ? row.raw_settings : {};
 
-    // The generated Supabase Database type currently exposes global_settings.raw_settings
-    // too narrowly (update() resolves to never). Keep the runtime payload typed locally
-    // until the generated database types are refreshed from the current schema.
-    const settingsTable = supabaseAdmin.from('global_settings') as any;
-    const { data, error } = await settingsTable
-      .update({ raw_settings: { ...raw, ads } })
-      .eq('id', 'global')
-      .select('raw_settings')
-      .single();
-    if (error) throw error;
-    const savedRow = data as SettingsRow;
+    const settingsTable: any = supabaseAdmin.from('global_settings');
+    const result: any = await settingsTable.update({ raw_settings: { ...raw, ads } }).eq('id', 'global').select('raw_settings').single();
+    if (result.error) throw result.error;
+    const savedRow = result.data as SettingsRow;
     return NextResponse.json({ success: true, ads: (savedRow.raw_settings?.ads as AdsSettings | undefined) || ads });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Failed to save ads' }, { status: 500 });
