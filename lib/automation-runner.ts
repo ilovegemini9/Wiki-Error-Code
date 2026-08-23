@@ -2,9 +2,13 @@ import { getLanguageByCode } from './languages';
 import { executeWithCascadeFallback } from './ai-service';
 import {
   getSupabaseArticles,
+  getSupabaseBrands,
+  getSupabaseCategories,
   getSupabaseSettings,
   saveSupabaseArticle,
   saveSupabaseAiGenerationLog,
+  saveSupabaseBrand,
+  saveSupabaseCategory,
   saveSupabaseSettings,
 } from './supabase-db';
 
@@ -35,7 +39,38 @@ const MASTER_PRESETS = [
   { code: 'DNS_PROBE_FINISHED_NXDOMAIN', brand: 'Google Chrome', device: 'DNS Resolution', cat: 'software' },
 ];
 
+const CATEGORY_ALIASES: Record<string, { name: string; description: string }> = {
+  automotive: { name: 'Cars & Vehicles', description: 'OBD-II diagnostic error codes for vehicles.' },
+  appliances: { name: 'Home Appliances', description: 'Error codes for washers, dryers, dishwashers and household appliances.' },
+  software: { name: 'Software & Web', description: 'Software, browser, server and application error codes.' },
+};
+
 let isRunningStep = false;
+
+async function resolveTaxonomy(preset: (typeof MASTER_PRESETS)[number]) {
+  let categories = await getSupabaseCategories();
+  let category = categories.find(c => c.slug === preset.cat || c.id === preset.cat);
+  if (!category) {
+    const alias = CATEGORY_ALIASES[preset.cat] || { name: preset.cat.replace(/[-_]/g, ' '), description: `${preset.cat} error code troubleshooting database` };
+    category = await saveSupabaseCategory({ name: alias.name, slug: preset.cat, icon: 'Folder', description: alias.description, language: 'en' });
+  }
+
+  let brands = await getSupabaseBrands();
+  const brandName = preset.brand;
+  const brandSlug = brandName.toLowerCase().trim().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '');
+  let brand = brands.find(b => b.id === brandSlug || b.slug === brandSlug || b.name.toLowerCase() === brandName.toLowerCase());
+  if (!brand) {
+    brand = await saveSupabaseBrand({
+      name: brandName,
+      slug: brandSlug || `brand-${Date.now()}`,
+      categoryId: category.id,
+      deviceTypes: [preset.device],
+      description: `${brandName} diagnostic solutions`,
+      language: 'en',
+    });
+  }
+  return { category, brand };
+}
 
 export async function checkAndRunAutomationServer(): Promise<boolean> {
   if (isRunningStep) return false;
@@ -63,11 +98,12 @@ export async function checkAndRunAutomationServer(): Promise<boolean> {
     const langObj = getLanguageByCode(targetLangCode);
     const modelToUse = settings.automationModel || settings.defaultAiModel || 'google/gemma-4-31b-it';
     const openRouterApiKey = process.env.OPENROUTER_API_KEY;
+    const { category, brand } = await resolveTaxonomy(preset);
 
     const prompt = `You are a world-class senior IT engineer, diagnostic systems architect, and technical SEO content strategist.
 Generate an exhaustive diagnostic manual for error code "${preset.code}".
 Target output language: ${langObj.englishName} (${langObj.name}), code "${langObj.code}". Write all content natively in that language.
-Brand: ${preset.brand}. Device/subsystem: ${preset.device}. Category: ${preset.cat}.
+Brand: ${preset.brand}. Device/subsystem: ${preset.device}. Category: ${category.name}.
 Generate ~1200+ words of useful technical content, at least 3 actionable solution methods, and 4 FAQs.
 Return STRICT VALID JSON matching the application's Article shape. Do not wrap JSON in markdown.
 Required fields: errorCode, title, slug, metaTitle, metaDescription, shortDefinition, meaning, causes, solutions, technicalExplanation, faq, keywords, tags, readingTime.`;
@@ -86,8 +122,8 @@ Required fields: errorCode, title, slug, metaTitle, metaDescription, shortDefini
     cleanedJson = cleanedJson.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
     const parsedArticle = JSON.parse(cleanedJson);
     parsedArticle.language = langObj.code;
-    parsedArticle.categoryId = preset.cat;
-    parsedArticle.brandId = preset.brand;
+    parsedArticle.categoryId = category.id;
+    parsedArticle.brandId = brand.id;
     parsedArticle.deviceType = preset.device;
     parsedArticle.status = settings.automationPublishStatus || 'published';
     parsedArticle.aiGenerated = true;
