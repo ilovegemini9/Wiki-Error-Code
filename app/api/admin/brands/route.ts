@@ -6,6 +6,7 @@ import { deleteSupabaseBrand, saveSupabaseBrand } from '@/lib/supabase-admin';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  if (!(await isAuthenticatedAdmin())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try { return NextResponse.json({ brands: await getSupabaseBrands() }); }
   catch (e) { return NextResponse.json({ error: e instanceof Error ? e.message : 'Failed to load brands' }, { status: 500 }); }
 }
