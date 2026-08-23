@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://errorcodewiki.ai.studio'),
   title: 'ErrorCodeWiki - Error Code Database & Troubleshooting',
   description: 'Searchable database of error codes across software, hardware, vehicles, appliances, and networking equipment.',
-  verification: { google: ['googlea4a6cf77ebec56e8', 'QRRnb67ZqiKc6NpatA0tb1vzN2aLZTP9XycpFLjjjVg'] },
+  verification: { google: ['googlea4a6cf77ebec56e8', 'QRRnb67ZqiKc6NpatA0tb1vzN2aLZTP9XycpFLjjjVg', 'BN0Dx7OuNNse5IW0QIJ_R4omjUvtWiWkJmq86sxUj7Q'] },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
