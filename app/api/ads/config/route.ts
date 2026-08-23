@@ -42,3 +42,5 @@ export async function GET() {
     return NextResponse.json(DEFAULT_CONFIG, { status: 200, headers: { 'Cache-Control': 'no-store' } });
   }
 }
+
+// Keep this route build-safe with Supabase generated types that may lag the schema.
