@@ -98,7 +98,9 @@ export async function getAnalyticsSummary(days = 30) {
       const key = raw == null || raw === '' ? 'Unknown' : String(raw);
       counts[key] = (counts[key] || 0) + 1;
     }
-    const entries: Array<[string, number]> = Object.entries(counts).map(([name, count]) => [name, Number(count)]);
+    const entries: Array<[string, number]> = Object.entries(counts).map(
+      ([name, count]) => [name, Number(count)] as [string, number]
+    );
     return entries
       .sort((a, b) => b[1] - a[1])
       .slice(0, limit)
@@ -120,7 +122,9 @@ export async function getAnalyticsSummary(days = 30) {
   for (const r of rows) {
     if (typeof r.search_keyword === 'string' && r.search_keyword) keywordCounts[r.search_keyword] = (keywordCounts[r.search_keyword] || 0) + 1;
   }
-  const keywordEntries: Array<[string, number]> = Object.entries(keywordCounts).map(([name, count]) => [name, Number(count)]);
+  const keywordEntries: Array<[string, number]> = Object.entries(keywordCounts).map(
+    ([name, count]) => [name, Number(count)] as [string, number]
+  );
   return {
     days,
     pageViews: rows.filter((r) => r.event_name === 'page_view').length,
