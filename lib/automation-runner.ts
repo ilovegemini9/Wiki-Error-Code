@@ -7,10 +7,9 @@ import {
   getSupabaseSettings,
   saveSupabaseArticle,
   saveSupabaseAiGenerationLog,
-  saveSupabaseBrand,
-  saveSupabaseCategory,
   saveSupabaseSettings,
 } from './supabase-db';
+import { saveSupabaseBrand, saveSupabaseCategory } from './supabase-admin';
 
 const MASTER_PRESETS = [
   { code: '0x80070005', brand: 'Microsoft', device: 'Windows 11 PC', cat: 'windows' },
