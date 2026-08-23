@@ -6,8 +6,11 @@ import { getSupabaseSettings, saveSupabaseSettings } from '@/lib/supabase-db';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  if (!(await isAuthenticatedAdmin())) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
-    // Trigger background check if automation is active.
     checkAndRunAutomationServer().catch(() => {});
     const settings = await getSupabaseSettings();
     return NextResponse.json({ settings });
