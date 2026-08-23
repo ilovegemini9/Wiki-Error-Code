@@ -1,85 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { isAuthenticatedAdmin } from '@/lib/auth';
 import { Article, Settings } from '@/lib/types';
+import { getSupabaseArticles, getSupabaseBrands, getSupabaseCategories, getSupabaseSettings, saveSupabaseArticle, saveSupabaseSettings } from '@/lib/supabase-db';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  if (!(await isAuthenticatedAdmin())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
-    const { articles, total } = db.getArticles({ status: 'all' });
-    const settings = db.getSettings();
-    const categories = db.getCategories();
-    const brands = db.getBrands();
-
-    return NextResponse.json({
-      success: true,
-      totalArticles: total,
-      articles,
-      settings: {
-        ...settings,
-        hasOpenRouterKey: !!(settings.openRouterApiKey && settings.openRouterApiKey.length > 5)
-      },
-      categoriesCount: categories.length,
-      brandsCount: brands.length
-    });
-  } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : 'Sync GET failed' }, { status: 500 });
-  }
+    const [{ articles, total }, settings, categories, brands] = await Promise.all([
+      getSupabaseArticles({ status: 'all' }), getSupabaseSettings(), getSupabaseCategories(), getSupabaseBrands()
+    ]);
+    return NextResponse.json({ success: true, totalArticles: total, articles, settings: { ...settings, openRouterApiKey: undefined, hasOpenRouterKey: !!settings.openRouterApiKey }, categoriesCount: categories.length, brandsCount: brands.length });
+  } catch (e) { return NextResponse.json({ error: e instanceof Error ? e.message : 'Sync GET failed' }, { status: 500 }); }
 }
 
 export async function POST(req: NextRequest) {
+  if (!(await isAuthenticatedAdmin())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const body = await req.json();
-    const clientArticles: Article[] = body.articles || [];
-    const clientSettings: Partial<Settings> = body.settings || {};
-
+    const clientArticles: Article[] = Array.isArray(body.articles) ? body.articles : [];
+    const clientSettings: Partial<Settings> = body.settings && typeof body.settings === 'object' ? body.settings : {};
+    const existing = (await getSupabaseArticles({ status: 'all' })).articles;
     let restoredArticlesCount = 0;
 
-    if (Array.isArray(clientArticles) && clientArticles.length > 0) {
-      const existing = db.getArticles({ status: 'all' }).articles;
-      for (const art of clientArticles) {
-        if (!art.errorCode || !art.title) continue;
-        const exists = existing.some(
-          e => e.id === art.id || (e.errorCode.toLowerCase() === art.errorCode.toLowerCase() && (e.language || 'en').toLowerCase() === (art.language || 'en').toLowerCase())
-        );
-        if (!exists) {
-          db.saveArticle(art);
-          restoredArticlesCount++;
-        }
-      }
+    for (const art of clientArticles) {
+      if (!art.errorCode || !art.title) continue;
+      const exists = existing.some(e => e.id === art.id || (e.errorCode.toLowerCase() === art.errorCode.toLowerCase() && (e.language || 'en').toLowerCase() === (art.language || 'en').toLowerCase()));
+      if (!exists) { await saveSupabaseArticle(art); restoredArticlesCount++; }
     }
 
-    if (clientSettings && Object.keys(clientSettings).length > 0) {
-      const currentSettings = db.getSettings();
-      const newSettings: Partial<Settings> = {};
-      if (clientSettings.openRouterApiKey && !currentSettings.openRouterApiKey) {
-        newSettings.openRouterApiKey = clientSettings.openRouterApiKey;
-      }
-      if (clientSettings.automationActive !== undefined && currentSettings.automationActive === undefined) {
-        newSettings.automationActive = clientSettings.automationActive;
-      }
-      if (clientSettings.automationIntervalMinutes && !currentSettings.automationIntervalMinutes) {
-        newSettings.automationIntervalMinutes = clientSettings.automationIntervalMinutes;
-      }
-      if (clientSettings.automationLanguages && (!currentSettings.automationLanguages || currentSettings.automationLanguages.length === 0)) {
-        newSettings.automationLanguages = clientSettings.automationLanguages;
-      }
-      if (Object.keys(newSettings).length > 0) {
-        db.saveSettings(newSettings);
-      }
-    }
+    const currentSettings = await getSupabaseSettings();
+    const newSettings: Partial<Settings> = {};
+    if (clientSettings.openRouterApiKey && !currentSettings.openRouterApiKey) newSettings.openRouterApiKey = clientSettings.openRouterApiKey;
+    if (clientSettings.automationActive !== undefined && currentSettings.automationActive === undefined) newSettings.automationActive = clientSettings.automationActive;
+    if (clientSettings.automationIntervalMinutes && !currentSettings.automationIntervalMinutes) newSettings.automationIntervalMinutes = clientSettings.automationIntervalMinutes;
+    if (clientSettings.automationLanguages?.length && !currentSettings.automationLanguages?.length) newSettings.automationLanguages = clientSettings.automationLanguages;
+    if (Object.keys(newSettings).length) await saveSupabaseSettings(newSettings);
 
-    const { articles, total } = db.getArticles({ status: 'all' });
-    const settings = db.getSettings();
-
-    return NextResponse.json({
-      success: true,
-      restoredArticlesCount,
-      totalArticles: total,
-      articles,
-      settings
-    });
-  } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : 'Sync POST failed' }, { status: 500 });
-  }
+    const [{ articles, total }, settings] = await Promise.all([getSupabaseArticles({ status: 'all' }), getSupabaseSettings()]);
+    return NextResponse.json({ success: true, restoredArticlesCount, totalArticles: total, articles, settings: { ...settings, openRouterApiKey: undefined, hasOpenRouterKey: !!settings.openRouterApiKey } });
+  } catch (e) { return NextResponse.json({ error: e instanceof Error ? e.message : 'Sync POST failed' }, { status: 500 }); }
 }
