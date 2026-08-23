@@ -53,11 +53,17 @@ export async function getSupabaseArticles(params?: { status?: 'draft' | 'publish
   return { articles: (data || []).map(rowToArticle), total: count || 0 };
 }
 
-export async function getSupabaseArticleBySlug(slug: string): Promise<Article | null> { const { data, error } = await requireClient().from('articles').select('*').eq('slug', slug.toLowerCase().trim()).maybeSingle(); if (error) throw error; return data ? rowToArticle(data) : null; }
+export async function getSupabaseArticleBySlug(slug: string, language?: string): Promise<Article | null> {
+  let query = requireClient().from('articles').select('*').eq('slug', slug.toLowerCase().trim());
+  if (language && language !== 'all') query = query.eq('language', language.toLowerCase().trim().split('-')[0]);
+  const { data, error } = await query.maybeSingle(); if (error) throw error; return data ? rowToArticle(data) : null;
+}
 export async function getSupabaseCategories(language?: string): Promise<Category[]> { const { data, error } = await requireClient().from('categories').select('*').order('name'); if (error) throw error; const lang = language && language !== 'all' ? language.toLowerCase().trim().split('-')[0] : null; return (data || []).filter((r: any) => !lang || !r.language || r.language.toLowerCase().split('-')[0] === lang).map(rowToCategory); }
 export async function getSupabaseCategoryBySlug(slug: string): Promise<Category | null> { const { data, error } = await requireClient().from('categories').select('*').eq('slug', slug.toLowerCase().trim()).maybeSingle(); if (error) throw error; return data ? rowToCategory(data) : null; }
+export async function getSupabaseCategoryById(id: string): Promise<Category | null> { if (!id) return null; const { data, error } = await requireClient().from('categories').select('*').eq('id', id).maybeSingle(); if (error) throw error; return data ? rowToCategory(data) : null; }
 export async function getSupabaseBrands(language?: string): Promise<Brand[]> { const { data, error } = await requireClient().from('brands').select('*').order('name'); if (error) throw error; const lang = language && language !== 'all' ? language.toLowerCase().trim().split('-')[0] : null; return (data || []).filter((r: any) => !lang || !r.language || r.language.toLowerCase().split('-')[0] === lang).map(rowToBrand); }
 export async function getSupabaseBrandBySlug(slug: string): Promise<Brand | null> { const { data, error } = await requireClient().from('brands').select('*').eq('slug', slug.toLowerCase().trim()).maybeSingle(); if (error) throw error; return data ? rowToBrand(data) : null; }
+export async function getSupabaseBrandById(id: string): Promise<Brand | null> { if (!id) return null; const { data, error } = await requireClient().from('brands').select('*').eq('id', id).maybeSingle(); if (error) throw error; return data ? rowToBrand(data) : null; }
 
 export async function saveSupabaseArticle(article: Partial<Article> & { errorCode: string; title: string }): Promise<Article> {
   const client = requireClient(); const now = new Date().toISOString(); const language = (article.language || 'en').toLowerCase().trim().split('-')[0];
