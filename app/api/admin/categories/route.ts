@@ -6,6 +6,7 @@ import { deleteSupabaseCategory, saveSupabaseCategory } from '@/lib/supabase-adm
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
+  if (!(await isAuthenticatedAdmin())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try { const lang = new URL(req.url).searchParams.get('lang') || undefined; return NextResponse.json({ categories: await getSupabaseCategories(lang) }); }
   catch (e) { return NextResponse.json({ error: e instanceof Error ? e.message : 'Failed to load categories' }, { status: 500 }); }
 }
