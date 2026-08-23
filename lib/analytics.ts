@@ -98,7 +98,8 @@ export async function getAnalyticsSummary(days = 30) {
       const key = raw == null || raw === '' ? 'Unknown' : String(raw);
       counts[key] = (counts[key] || 0) + 1;
     }
-    return Object.entries(counts)
+    const entries: Array<[string, number]> = Object.entries(counts).map(([name, count]) => [name, Number(count)]);
+    return entries
       .sort((a, b) => b[1] - a[1])
       .slice(0, limit)
       .map(([name, count]) => ({ name, count }));
@@ -112,11 +113,14 @@ export async function getAnalyticsSummary(days = 30) {
     dayMap[day].views++;
     if (typeof r.session_id === 'string' && r.session_id) dayMap[day].sessions.add(r.session_id);
   }
-  const daily = Object.entries(dayMap).sort((a, b) => a[0].localeCompare(b[0])).map(([date, v]) => ({ date, views: v.views, sessions: v.sessions.size }));
+  const daily = Object.entries(dayMap)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([date, v]) => ({ date, views: Number(v.views), sessions: v.sessions.size }));
   const keywordCounts: Record<string, number> = {};
   for (const r of rows) {
     if (typeof r.search_keyword === 'string' && r.search_keyword) keywordCounts[r.search_keyword] = (keywordCounts[r.search_keyword] || 0) + 1;
   }
+  const keywordEntries: Array<[string, number]> = Object.entries(keywordCounts).map(([name, count]) => [name, Number(count)]);
   return {
     days,
     pageViews: rows.filter((r) => r.event_name === 'page_view').length,
@@ -129,7 +133,7 @@ export async function getAnalyticsSummary(days = 30) {
     browsers: countBy('browser'),
     operatingSystems: countBy('os'),
     searchEngines: countBy('search_engine'),
-    keywords: Object.entries(keywordCounts).sort((a, b) => b[1] - a[1]).slice(0, 20).map(([name, count]) => ({ name, count })),
+    keywords: keywordEntries.sort((a, b) => b[1] - a[1]).slice(0, 20).map(([name, count]) => ({ name, count })),
     topPages: countBy('path', 15),
     campaigns: countBy('campaign', 10),
     daily,
