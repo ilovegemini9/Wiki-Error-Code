@@ -36,6 +36,11 @@ function AnalyticsTracker() {
   useEffect(() => {
     if (navigator.doNotTrack === '1') return;
 
+    // Never record admin traffic as public-site analytics.
+    // This prevents admin navigation, refreshes, and analytics dashboard visits
+    // from inflating public visitors/pageviews/referrers/country statistics.
+    if (pathname === '/admin' || pathname?.startsWith('/admin/')) return;
+
     const key = 'ecw_analytics_session';
     let sessionId = sessionStorage.getItem(key);
     if (!sessionId) {
