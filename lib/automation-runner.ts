@@ -4,6 +4,7 @@ import {
   getSupabaseArticles,
   getSupabaseSettings,
   saveSupabaseArticle,
+  saveSupabaseAiGenerationLog,
   saveSupabaseSettings,
 } from './supabase-db';
 
@@ -45,13 +46,11 @@ export async function checkAndRunAutomationServer(): Promise<boolean> {
     if (!settings.automationActive) return false;
 
     const now = Date.now();
-    const lastRunTime = settings.lastAutomationRunTime
-      ? new Date(settings.lastAutomationRunTime).getTime()
-      : 0;
+    const lastRunTime = settings.lastAutomationRunTime ? new Date(settings.lastAutomationRunTime).getTime() : 0;
     const intervalMinutes = settings.automationIntervalMinutes || 1;
     if (lastRunTime > 0 && now - lastRunTime < intervalMinutes * 60 * 1000) return false;
 
-    const { articles: existing } = await getSupabaseArticles({ status: 'all' });
+    const { articles: existing } = await getSupabaseArticles({ status: 'all', limit: 500, offset: 0 });
     const uncreated = MASTER_PRESETS.filter((p) => {
       const cleanP = p.code.toLowerCase().replace(/[^a-z0-9]/g, '');
       return !existing.some((a) => a.errorCode.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanP);
@@ -63,6 +62,7 @@ export async function checkAndRunAutomationServer(): Promise<boolean> {
     const targetLangCode = languages[Math.floor(Math.random() * languages.length)] || 'en';
     const langObj = getLanguageByCode(targetLangCode);
     const modelToUse = settings.automationModel || settings.defaultAiModel || 'google/gemma-4-31b-it';
+    const openRouterApiKey = process.env.OPENROUTER_API_KEY;
 
     const prompt = `You are a world-class senior IT engineer, diagnostic systems architect, and technical SEO content strategist.
 Generate an exhaustive diagnostic manual for error code "${preset.code}".
@@ -76,7 +76,7 @@ Required fields: errorCode, title, slug, metaTitle, metaDescription, shortDefini
       prompt,
       temperature: 0.7,
       selectedModel: modelToUse,
-      openRouterApiKey: settings.openRouterApiKey,
+      openRouterApiKey,
       siteUrl: settings.siteUrl || 'https://errorcodewiki.org',
       siteName: settings.siteName || 'ErrorCodeWiki',
       systemPrompt: 'You are a technical diagnostic database generator. Output strictly valid JSON without markdown wrapping.',
@@ -85,7 +85,6 @@ Required fields: errorCode, title, slug, metaTitle, metaDescription, shortDefini
     let cleanedJson = result.text.trim();
     cleanedJson = cleanedJson.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
     const parsedArticle = JSON.parse(cleanedJson);
-
     parsedArticle.language = langObj.code;
     parsedArticle.categoryId = preset.cat;
     parsedArticle.brandId = preset.brand;
@@ -94,6 +93,16 @@ Required fields: errorCode, title, slug, metaTitle, metaDescription, shortDefini
     parsedArticle.aiGenerated = true;
 
     const saved = await saveSupabaseArticle(parsedArticle);
+    await saveSupabaseAiGenerationLog({
+      errorCode: preset.code,
+      brand: preset.brand,
+      device: preset.device,
+      model: result.usedModel || modelToUse,
+      status: 'completed',
+      articleId: saved.id,
+      responseSummary: saved.title,
+    });
+
     const timeStr = new Date().toLocaleTimeString();
     const newLog = {
       id: String(Date.now()),
@@ -101,29 +110,20 @@ Required fields: errorCode, title, slug, metaTitle, metaDescription, shortDefini
       text: `✅ [SERVER AUTO-PUBLISHED] "${saved.title}" (${langObj.flag} ${langObj.code.toUpperCase()}) created & published!`,
       type: 'success' as const,
     };
-
     const currentLogs = settings.automationLogs || [];
     await saveSupabaseSettings({
       lastAutomationRunTime: new Date().toISOString(),
       automationCount: (settings.automationCount || 0) + 1,
       automationLogs: [newLog, ...currentLogs.slice(0, 49)],
     });
-
     return true;
   } catch (err: unknown) {
     try {
       const settings = await getSupabaseSettings();
       const errMsg = err instanceof Error ? err.message : 'Server automation error';
-      const errorLog = {
-        id: String(Date.now()),
-        time: new Date().toLocaleTimeString(),
-        text: `❌ [SERVER AUTOMATION ERROR] ${errMsg}`,
-        type: 'error' as const,
-      };
-      await saveSupabaseSettings({
-        lastAutomationRunTime: new Date().toISOString(),
-        automationLogs: [errorLog, ...(settings.automationLogs || []).slice(0, 49)],
-      });
+      await saveSupabaseAiGenerationLog({ status: 'failed', responseSummary: errMsg });
+      const errorLog = { id: String(Date.now()), time: new Date().toLocaleTimeString(), text: `❌ [SERVER AUTOMATION ERROR] ${errMsg}`, type: 'error' as const };
+      await saveSupabaseSettings({ lastAutomationRunTime: new Date().toISOString(), automationLogs: [errorLog, ...(settings.automationLogs || []).slice(0, 49)] });
     } catch {
       // Preserve the original automation failure if logging itself fails.
     }
@@ -138,8 +138,6 @@ let globalIntervalStarted = false;
 export function initAutomationBackgroundServer() {
   if (globalIntervalStarted || process.env.NEXT_PHASE === 'phase-production-build') return;
   globalIntervalStarted = true;
-  const timer = setInterval(() => {
-    checkAndRunAutomationServer().catch(() => {});
-  }, 15000);
+  const timer = setInterval(() => { checkAndRunAutomationServer().catch(() => {}); }, 15000);
   if (timer && typeof timer.unref === 'function') timer.unref();
 }
