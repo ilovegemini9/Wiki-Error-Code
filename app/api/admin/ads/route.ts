@@ -6,40 +6,21 @@ export const dynamic = 'force-dynamic';
 
 const EMPTY = { enabled: false, client: '', slots: { top: '', 'in-content': '', sidebar: '', 'sticky-mobile': '', bottom: '' } };
 type SettingsRow = { raw_settings: Record<string, unknown> | null };
-
-type AdsSettings = {
-  enabled?: boolean;
-  client?: string;
-  slots?: Record<string, string>;
-};
+type AdsSettings = { enabled?: boolean; client?: string; slots?: Record<string, string> };
 
 export async function GET() {
   if (!(await isAuthenticatedAdmin())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   if (!supabaseAdmin) return NextResponse.json({ ads: EMPTY });
-
-  const { data, error } = await supabaseAdmin
-    .from('global_settings')
-    .select('raw_settings')
-    .eq('id', 'global')
-    .maybeSingle();
-
+  const { data, error } = await supabaseAdmin.from('global_settings').select('raw_settings').eq('id', 'global').maybeSingle();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
   const row = data as unknown as SettingsRow | null;
-  const ads = ((row?.raw_settings?.ads as AdsSettings | undefined) || {});
-  return NextResponse.json({
-    ads: {
-      ...EMPTY,
-      ...ads,
-      slots: { ...EMPTY.slots, ...(ads.slots || {}) },
-    },
-  });
+  const ads = (row?.raw_settings?.ads as AdsSettings | undefined) || {};
+  return NextResponse.json({ ads: { ...EMPTY, ...ads, slots: { ...EMPTY.slots, ...(ads.slots || {}) } } });
 }
 
 export async function POST(req: NextRequest) {
   if (!(await isAuthenticatedAdmin())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   if (!supabaseAdmin) return NextResponse.json({ error: 'Supabase is not configured' }, { status: 500 });
-
   try {
     const body = await req.json();
     const ads = {
@@ -53,30 +34,13 @@ export async function POST(req: NextRequest) {
         bottom: typeof body?.slots?.bottom === 'string' ? body.slots.bottom.trim() : '',
       },
     };
-
-    const { data: current, error: readError } = await supabaseAdmin
-      .from('global_settings')
-      .select('raw_settings')
-      .eq('id', 'global')
-      .single();
+    const { data: current, error: readError } = await supabaseAdmin.from('global_settings').select('raw_settings').eq('id', 'global').single();
     if (readError) throw readError;
-
-    const currentRow = current as unknown as SettingsRow;
-    const raw = currentRow?.raw_settings && typeof currentRow.raw_settings === 'object'
-      ? currentRow.raw_settings
-      : {};
-
-    const { data, error } = await supabaseAdmin
-      .from('global_settings')
-      .update({ raw_settings: { ...raw, ads } })
-      .eq('id', 'global')
-      .select('raw_settings')
-      .single();
+    const raw = ((current as unknown as SettingsRow)?.raw_settings && typeof (current as unknown as SettingsRow).raw_settings === 'object') ? (current as unknown as SettingsRow).raw_settings! : {};
+    const { data, error } = await supabaseAdmin.from('global_settings').update({ raw_settings: { ...raw, ads } }).eq('id', 'global').select('raw_settings').single();
     if (error) throw error;
-
     const savedRow = data as unknown as SettingsRow;
-    const savedAds = (savedRow?.raw_settings?.ads as AdsSettings | undefined) || ads;
-    return NextResponse.json({ success: true, ads: savedAds });
+    return NextResponse.json({ success: true, ads: (savedRow.raw_settings?.ads as AdsSettings | undefined) || ads });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Failed to save ads' }, { status: 500 });
   }
