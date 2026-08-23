@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 export function useSafeRouter() {
   return useRouter();
@@ -8,8 +8,4 @@ export function useSafeRouter() {
 
 export function useSafePathname() {
   return usePathname();
-}
-
-export function useSafeSearchParams() {
-  return useSearchParams();
 }

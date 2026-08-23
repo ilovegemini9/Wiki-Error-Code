@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 import { isAuthenticatedAdmin } from '@/lib/auth';
+import {
+  deleteSupabaseArticle,
+  getSupabaseArticles,
+  saveSupabaseArticle,
+} from '@/lib/supabase-db';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,20 +13,24 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { searchParams } = new URL(req.url);
-  const status = (searchParams.get('status') as 'draft' | 'published' | 'all') || 'all';
-  const q = searchParams.get('q') || undefined;
-  const category = searchParams.get('category') || undefined;
-  const brand = searchParams.get('brand') || undefined;
+  try {
+    const { searchParams } = new URL(req.url);
+    const status = (searchParams.get('status') as 'draft' | 'published' | 'all') || 'all';
+    const q = searchParams.get('q') || undefined;
+    const category = searchParams.get('category') || undefined;
+    const brand = searchParams.get('brand') || undefined;
 
-  const result = db.getArticles({
-    status,
-    search: q,
-    categorySlug: category,
-    brandSlug: brand
-  });
+    const result = await getSupabaseArticles({
+      status,
+      search: q,
+      categorySlug: category,
+      brandSlug: brand,
+    });
 
-  return NextResponse.json(result);
+    return NextResponse.json(result);
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'Failed to load articles' }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -36,7 +44,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Error code and title are required' }, { status: 400 });
     }
 
-    const article = db.saveArticle(body);
+    const article = await saveSupabaseArticle(body);
     return NextResponse.json({ success: true, article });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Failed to save article' }, { status: 500 });
@@ -55,6 +63,10 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Article ID required' }, { status: 400 });
   }
 
-  const deleted = db.deleteArticle(id);
-  return NextResponse.json({ success: deleted });
+  try {
+    const deleted = await deleteSupabaseArticle(id);
+    return NextResponse.json({ success: deleted });
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'Failed to delete article' }, { status: 500 });
+  }
 }
