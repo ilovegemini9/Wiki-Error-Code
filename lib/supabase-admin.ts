@@ -49,20 +49,37 @@ export async function deleteSupabaseBrand(id: string): Promise<boolean> {
 }
 
 export async function getSupabaseDashboardStats() {
-  const [articleRes, categoryRes, brandRes, logRes] = await Promise.all([
-    client().from('articles').select('*').order('updated_at', { ascending: false }),
-    client().from('categories').select('id, name, slug'),
-    client().from('brands').select('id, name, slug'),
-    client().from('ai_generation_logs').select('id,error_code,brand,device,model,created_at,status').order('created_at', { ascending: false }).limit(20),
+  const today = new Date().toISOString().slice(0, 10);
+  const todayStart = `${today}T00:00:00.000Z`;
+  const [articleCountRes, publishedCountRes, draftCountRes, categoryCountRes, brandCountRes, viewsRes, recentArticlesRes, recentLogsRes, todayAiCountRes] = await Promise.all([
+    client().from('articles').select('id', { count: 'exact', head: true }),
+    client().from('articles').select('id', { count: 'exact', head: true }).eq('status', 'published'),
+    client().from('articles').select('id', { count: 'exact', head: true }).eq('status', 'draft'),
+    client().from('categories').select('id', { count: 'exact', head: true }),
+    client().from('brands').select('id', { count: 'exact', head: true }),
+    client().from('articles').select('views_count'),
+    client().from('articles').select('id,error_code,title,status').order('updated_at', { ascending: false }).limit(10),
+    client().from('ai_generation_logs').select('id,error_code,brand,device,model,created_at,status').order('created_at', { ascending: false }).limit(10),
+    client().from('ai_generation_logs').select('id', { count: 'exact', head: true }).gte('created_at', todayStart),
   ]);
-  if (articleRes.error) throw articleRes.error; if (categoryRes.error) throw categoryRes.error; if (brandRes.error) throw brandRes.error; if (logRes.error) throw logRes.error;
-  const articles = articleRes.data || [], logs = logRes.data || [], today = new Date().toISOString().slice(0, 10);
+
+  const results = [articleCountRes, publishedCountRes, draftCountRes, categoryCountRes, brandCountRes, viewsRes, recentArticlesRes, recentLogsRes, todayAiCountRes];
+  const firstError = results.find((result) => result.error)?.error;
+  if (firstError) throw firstError;
+
+  const articles = recentArticlesRes.data || [];
+  const logs = recentLogsRes.data || [];
+  const totalViews = (viewsRes.data || []).reduce((total: number, row: any) => total + Number(row.views_count || 0), 0);
+
   return {
-    totalArticles: articles.length, publishedArticles: articles.filter((a: any) => a.status === 'published').length,
-    draftArticles: articles.filter((a: any) => a.status === 'draft').length, categoriesCount: (categoryRes.data || []).length,
-    brandsCount: (brandRes.data || []).length, totalViews: articles.reduce((n: number, a: any) => n + (a.views_count || 0), 0),
-    todayAiGenerations: logs.filter((l: any) => String(l.created_at || '').slice(0, 10) === today).length,
-    recentArticles: articles.slice(0, 10).map((a: any) => ({ id: a.id, errorCode: a.error_code, title: a.title, status: a.status })),
-    recentAiLogs: logs.slice(0, 10).map((l: any) => ({ id: l.id, errorCode: l.error_code || '', brand: l.brand || '', device: l.device || '', model: l.model || '', createdAt: l.created_at, status: l.status })),
+    totalArticles: articleCountRes.count || 0,
+    publishedArticles: publishedCountRes.count || 0,
+    draftArticles: draftCountRes.count || 0,
+    categoriesCount: categoryCountRes.count || 0,
+    brandsCount: brandCountRes.count || 0,
+    totalViews,
+    todayAiGenerations: todayAiCountRes.count || 0,
+    recentArticles: articles.map((a: any) => ({ id: a.id, errorCode: a.error_code, title: a.title, status: a.status })),
+    recentAiLogs: logs.map((l: any) => ({ id: l.id, errorCode: l.error_code || '', brand: l.brand || '', device: l.device || '', model: l.model || '', createdAt: l.created_at, status: l.status })),
   };
 }
