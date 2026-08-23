@@ -89,13 +89,49 @@ export async function getAnalyticsSummary(days = 30) {
     .order('created_at', { ascending: false })
     .limit(20000);
   if (error) throw error;
-  const rows = data || [];
-  const unique = (field: string) => new Set(rows.map((r: any) => r[field]).filter(Boolean)).size;
-  const countBy = (field: string, limit = 12) => Object.entries(rows.reduce((m: Record<string, number>, r: any) => { const k = r[field] || 'Unknown'; m[k] = (m[k] || 0) + 1; return m; }, {})).sort((a,b) => b[1] - a[1]).slice(0, limit).map(([name, count]) => ({ name, count }));
-  const sessions = new Set(rows.map((r: any) => r.session_id).filter(Boolean));
+  const rows: Array<Record<string, unknown>> = Array.isArray(data) ? data : [];
+  const unique = (field: string) => new Set(rows.map((r) => r[field]).filter(Boolean)).size;
+  const countBy = (field: string, limit = 12) => {
+    const counts: Record<string, number> = {};
+    for (const r of rows) {
+      const raw = r[field];
+      const key = raw == null || raw === '' ? 'Unknown' : String(raw);
+      counts[key] = (counts[key] || 0) + 1;
+    }
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit)
+      .map(([name, count]) => ({ name, count }));
+  };
+  const sessions = new Set(rows.map((r) => r.session_id).filter((value): value is string => typeof value === 'string' && value.length > 0));
   const dayMap: Record<string, { views: number; sessions: Set<string> }> = {};
-  for (const r of rows) { const day = String(r.created_at).slice(0, 10); dayMap[day] ||= { views: 0, sessions: new Set() }; dayMap[day].views++; if (r.session_id) dayMap[day].sessions.add(r.session_id); }
-  const daily = Object.entries(dayMap).sort((a,b) => a[0].localeCompare(b[0])).map(([date,v]) => ({ date, views: v.views, sessions: v.sessions.size }));
-  const keywords = rows.filter((r:any) => r.search_keyword).reduce((m:Record<string,number>,r:any) => { m[r.search_keyword] = (m[r.search_keyword]||0)+1; return m; }, {});
-  return { days, pageViews: rows.filter((r:any)=>r.event_name==='page_view').length, uniqueVisitors: sessions.size, uniquePages: unique('path'), sources: countBy('source'), referrers: countBy('referrer_host'), countries: countBy('country_code'), devices: countBy('device_type'), browsers: countBy('browser'), operatingSystems: countBy('os'), searchEngines: countBy('search_engine'), keywords: Object.entries(keywords).sort((a,b)=>b[1]-a[1]).slice(0,20).map(([name,count])=>({name,count})), topPages: countBy('path',15), campaigns: countBy('campaign',10), daily };
+  for (const r of rows) {
+    const day = String(r.created_at || '').slice(0, 10);
+    if (!day) continue;
+    dayMap[day] ||= { views: 0, sessions: new Set() };
+    dayMap[day].views++;
+    if (typeof r.session_id === 'string' && r.session_id) dayMap[day].sessions.add(r.session_id);
+  }
+  const daily = Object.entries(dayMap).sort((a, b) => a[0].localeCompare(b[0])).map(([date, v]) => ({ date, views: v.views, sessions: v.sessions.size }));
+  const keywordCounts: Record<string, number> = {};
+  for (const r of rows) {
+    if (typeof r.search_keyword === 'string' && r.search_keyword) keywordCounts[r.search_keyword] = (keywordCounts[r.search_keyword] || 0) + 1;
+  }
+  return {
+    days,
+    pageViews: rows.filter((r) => r.event_name === 'page_view').length,
+    uniqueVisitors: sessions.size,
+    uniquePages: unique('path'),
+    sources: countBy('source'),
+    referrers: countBy('referrer_host'),
+    countries: countBy('country_code'),
+    devices: countBy('device_type'),
+    browsers: countBy('browser'),
+    operatingSystems: countBy('os'),
+    searchEngines: countBy('search_engine'),
+    keywords: Object.entries(keywordCounts).sort((a, b) => b[1] - a[1]).slice(0, 20).map(([name, count]) => ({ name, count })),
+    topPages: countBy('path', 15),
+    campaigns: countBy('campaign', 10),
+    daily,
+  };
 }
