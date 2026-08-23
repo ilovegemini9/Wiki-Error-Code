@@ -16,13 +16,12 @@ export async function GET(req: NextRequest) {
       status: 'published',
       search: q,
       categorySlug: category,
-      brandSlug: brand
+      brandSlug: brand,
+      limit,
+      offset,
     });
 
-    return NextResponse.json({
-      articles: result.articles.slice(offset, offset + limit),
-      total: result.total
-    });
+    return NextResponse.json({ articles: result.articles, total: result.total });
   } catch (error) {
     console.error('Supabase search failed:', error);
     return NextResponse.json({ error: 'Search temporarily unavailable' }, { status: 503 });
