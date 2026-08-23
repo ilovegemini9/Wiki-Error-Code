@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 
 function detectDevice() {
@@ -9,10 +9,10 @@ function detectDevice() {
   if (/mobile|android|iphone|ipod/i.test(ua)) return 'mobile';
   return 'desktop';
 }
-function detectBrowser() { const ua = navigator.userAgent; if (/edg\//i.test(ua)) return 'Edge'; if (/chrome\//i.test(ua)) return 'Chrome'; if (/firefox\//i.test(ua)) return 'Firefox'; if (/safari\//i.test(ua) && !/chrome\//i.test(ua)) return 'Safari'; return 'Other'; }
+function detectBrowser() { const ua = navigator.userAgent; if (/edg\\//i.test(ua)) return 'Edge'; if (/chrome\\//i.test(ua)) return 'Chrome'; if (/firefox\\//i.test(ua)) return 'Firefox'; if (/safari\\//i.test(ua) && !/chrome\\//i.test(ua)) return 'Safari'; return 'Other'; }
 function detectOS() { const ua = navigator.userAgent; if (/windows/i.test(ua)) return 'Windows'; if (/android/i.test(ua)) return 'Android'; if (/iphone|ipad|ipod/i.test(ua)) return 'iOS'; if (/mac os/i.test(ua)) return 'macOS'; if (/linux/i.test(ua)) return 'Linux'; return 'Other'; }
 
-export default function AnalyticsProvider() {
+function AnalyticsTracker() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   useEffect(() => {
@@ -36,4 +36,12 @@ export default function AnalyticsProvider() {
     return () => window.clearTimeout(timer);
   }, [pathname, searchParams]);
   return null;
+}
+
+export default function AnalyticsProvider() {
+  return (
+    <Suspense fallback={null}>
+      <AnalyticsTracker />
+    </Suspense>
+  );
 }
