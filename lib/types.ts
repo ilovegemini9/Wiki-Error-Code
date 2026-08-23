@@ -44,6 +44,7 @@ export interface Article {
   scheduledFor?: string;
   viewsCount: number;
   seoScore?: number;
+  aiGenerated?: boolean;
 }
 
 export interface Category {
@@ -70,6 +71,7 @@ export interface Brand {
 export interface Settings {
   siteName: string;
   siteUrl: string;
+  /** Never persisted to Supabase or returned by the admin settings API. Use OPENROUTER_API_KEY env var. */
   openRouterApiKey: string;
   defaultAiModel: string;
   language: string;
