@@ -127,7 +127,7 @@ export async function getSupabaseBrands(): Promise<Brand[]> {
   return (data || []).map(rowToCalculator);
 }
 
-export async function getSupabaseBrandBySlug(slug: string): Promise<Brand | null> {
+export async function getSupabaseBrandBySlug(slug: string, _language?: string): Promise<Brand | null> {
   const { data, error } = await requireClient().from('calculators').select('*').eq('slug', slug.toLowerCase().trim()).limit(1).maybeSingle();
   if (error) throw error;
   return data ? rowToCalculator(data) : null;
@@ -190,7 +190,7 @@ export async function saveSupabaseAiGenerationLog(log: { id?: string; errorCode?
 }
 
 export async function incrementSupabaseArticleViews(_id: string): Promise<void> {
-  // Article views are tracked by the aggregate analytics table in calculatoAi2.
+  // Article views are tracked by the aggregate analytics table.
 }
 
 export async function deleteSupabaseArticle(id: string): Promise<boolean> {
@@ -219,11 +219,12 @@ export async function saveSupabaseSettings(settings: Partial<Settings>): Promise
   const aiPayload: Record<string, unknown> = { id: 'global' };
   if (settings.siteUrl !== undefined) { appPayload.site_url = settings.siteUrl; seoPayload.site_url = settings.siteUrl; seoPayload.canonical_base = settings.siteUrl; }
   if (settings.siteName !== undefined) seoPayload.site_title = settings.siteName;
-  if (settings.googleAnalyticsId !== undefined) appPayload.analytics_code = settings.googleAnalyticsId;
-  if (settings.googleSearchConsoleTag !== undefined) seoPayload.google_verification = settings.googleSearchConsoleTag;
-  if (settings.robotsTxtContent !== undefined) seoPayload.robots_txt = settings.robotsTxtContent;
-  if (settings.defaultAiModel !== undefined) aiPayload.article_model = settings.defaultAiModel;
+  if (settings.googleSearchConsoleTag !== undefined) seoPayload.google_verification = settings.googleSearchConsoleTag || null;
+  if (settings.robotsTxtContent !== undefined) seoPayload.robots_txt = settings.robotsTxtContent || null;
+  if (settings.sitemapSettings?.autoUpdate !== undefined) seoPayload.sitemap_enabled = settings.sitemapSettings.autoUpdate;
+  if (settings.googleAnalyticsId !== undefined) appPayload.analytics_code = settings.googleAnalyticsId || null;
   if (settings.automationActive !== undefined) aiPayload.ai_enabled = settings.automationActive;
+  if (settings.defaultAiModel !== undefined) aiPayload.article_model = settings.defaultAiModel;
   const writes: Promise<unknown>[] = [];
   if (Object.keys(appPayload).length > 1) writes.push(client.from('app_settings').upsert(appPayload, { onConflict: 'id' }));
   if (Object.keys(seoPayload).length > 1) writes.push(client.from('seo_settings').upsert(seoPayload, { onConflict: 'id' }));
