@@ -6,7 +6,7 @@ function client() {
   return supabaseAdmin as any;
 }
 
-const categoryFromRow = (r: any): Category => ({ id: r.id, name: r.name, slug: r.slug, icon: r.icon || 'FolderTree', description: r.description || '' });
+const categoryFromRow = (r: any): Category => ({ id: r.id, name: r.name, slug: r.slug, icon: 'FolderTree', description: r.description || '' });
 const calculatorFromRow = (r: any): Brand => ({ id: r.id, name: r.name, slug: r.slug, categoryId: r.category_id || '', deviceTypes: [], description: r.description || '' });
 
 export async function saveSupabaseCategory(input: Partial<Category> & { name: string; slug: string }): Promise<Category> {
@@ -58,10 +58,10 @@ export async function getSupabaseDashboardStats() {
     publishedArticles: publishedCountRes.count || 0,
     draftArticles: draftCountRes.count || 0,
     categoriesCount: categoryCountRes.count || 0,
-    brandsCount: calculatorCountRes.count || 0,
+    calculatorsCount: calculatorCountRes.count || 0,
     totalViews,
     todayAiGenerations: todayAiCountRes.count || 0,
-    recentArticles: (recentArticlesRes.data || []).map((a: any) => ({ id: a.id, errorCode: a.slug || a.id, title: a.title, status: a.status })),
-    recentAiLogs: (recentLogsRes.data || []).map((l: any) => ({ id: l.id, errorCode: l.task_type || 'AI task', brand: '', device: '', model: l.model || 'unknown', createdAt: l.created_at, status: l.success ? 'completed' : 'failed' })),
+    recentArticles: (recentArticlesRes.data || []).map((a: any) => ({ id: a.id, slug: a.slug || a.id, title: a.title, status: a.status })),
+    recentAiLogs: (recentLogsRes.data || []).map((l: any) => ({ id: l.id, taskType: l.task_type || 'AI task', model: l.model || 'unknown', createdAt: l.created_at, status: l.success ? 'completed' : 'failed' })),
   };
 }
