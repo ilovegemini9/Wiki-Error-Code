@@ -6,11 +6,11 @@ function client() {
   return supabaseAdmin as any;
 }
 
-const categoryFromRow = (r: any): Category => ({ id: r.id, name: r.name, slug: r.slug, icon: 'FolderTree', description: r.description || '' });
-const calculatorFromRow = (r: any): Brand => ({ id: r.id, name: r.name, slug: r.slug, categoryId: r.category_id || '', deviceTypes: [], description: r.description || '' });
+const categoryFromRow = (r: any): Category => ({ id: r.id, name: r.name, slug: r.slug, icon: r.icon || 'FolderTree', description: r.description || '', language: r.language || 'en' });
+const calculatorFromRow = (r: any): Brand => ({ id: r.id, name: r.name, slug: r.slug, logoUrl: r.logo_url || undefined, categoryId: r.category_id || '', deviceTypes: Array.isArray(r.device_types) ? r.device_types : [], description: r.description || '', language: r.language || 'en' });
 
 export async function saveSupabaseCategory(input: Partial<Category> & { name: string; slug: string }): Promise<Category> {
-  const row = { id: input.id || `${input.slug}-${Date.now()}`, name: input.name.trim(), slug: input.slug.toLowerCase().trim(), description: input.description || '', created_at: new Date().toISOString() };
+  const row = { id: input.id || `${input.slug}-${Date.now()}`, name: input.name.trim(), slug: input.slug.toLowerCase().trim(), icon: input.icon || 'FolderTree', description: input.description || '', language: input.language || 'en', created_at: new Date().toISOString() };
   const { data, error } = await client().from('categories').upsert(row, { onConflict: 'id' }).select('*').single();
   if (error) throw error;
   return categoryFromRow(data);
@@ -23,7 +23,7 @@ export async function deleteSupabaseCategory(id: string): Promise<boolean> {
 }
 
 export async function saveSupabaseBrand(input: Partial<Brand> & { name: string; slug: string }): Promise<Brand> {
-  const row = { id: input.id || `${input.slug}-${Date.now()}`, name: input.name.trim(), slug: input.slug.toLowerCase().trim(), description: input.description || '', category_id: input.categoryId || null, device_types: input.deviceTypes || [] };
+  const row = { id: input.id || `${input.slug}-${Date.now()}`, name: input.name.trim(), slug: input.slug.toLowerCase().trim(), logo_url: input.logoUrl || null, description: input.description || '', category_id: input.categoryId || null, device_types: input.deviceTypes || [], language: input.language || 'en' };
   const { data, error } = await client().from('brands').upsert(row, { onConflict: 'id' }).select('*').single();
   if (error) throw error;
   return calculatorFromRow(data);
