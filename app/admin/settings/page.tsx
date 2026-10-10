@@ -22,6 +22,7 @@ export default function SettingsAdminPage() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [hasOpenRouterApiKey, setHasOpenRouterApiKey] = useState<boolean | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
@@ -31,6 +32,7 @@ export default function SettingsAdminPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to load settings');
         if (!ignore && data.settings) setSettings({ ...DEFAULT_SETTINGS, ...data.settings, openRouterApiKey: '' });
+        if (!ignore) setHasOpenRouterApiKey(Boolean(data.providerStatus?.hasOpenRouterApiKey));
       })
       .catch((e) => { if (!ignore) setMessage({ type: 'error', text: e instanceof Error ? e.message : 'Failed to load settings' }); })
       .finally(() => { if (!ignore) setLoading(false); });
@@ -73,9 +75,16 @@ export default function SettingsAdminPage() {
       {message && <div className={`p-3 rounded-xs border flex items-center gap-2 ${message.type === 'success' ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'}`}><AlertCircle className="w-4 h-4" />{message.text}</div>}
 
       <form onSubmit={handleSave} className="space-y-6">
-        <section className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-xs space-y-2">
-          <div className="font-serif font-bold text-sm flex items-center gap-2 text-emerald-950"><ShieldCheck className="w-4 h-4" />Provider secrets are server-only</div>
-          <p className="text-gray-700 leading-relaxed">The OpenRouter API key is intentionally not stored in Supabase, rendered in this page, or written to browser storage. Set <code className="font-mono">OPENROUTER_API_KEY</code> in Vercel Environment Variables. Admin authentication uses <code className="font-mono">ADMIN_USERNAME</code>, <code className="font-mono">ADMIN_PASSWORD</code>, and <code className="font-mono">ADMIN_SESSION_SECRET</code>.</p>
+        <section className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-xs space-y-3">
+          <div className="font-serif font-bold text-sm flex items-center gap-2 text-emerald-950"><ShieldCheck className="w-4 h-4" />OpenRouter API connection</div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 font-bold ${hasOpenRouterApiKey ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-900'}`}>
+              <span className={`h-2 w-2 rounded-full ${hasOpenRouterApiKey ? 'bg-green-600' : 'bg-amber-600'}`} />
+              {hasOpenRouterApiKey === null ? 'Checking configuration…' : hasOpenRouterApiKey ? 'API key configured in server environment' : 'API key missing from server environment'}
+            </span>
+            <a href="https://vercel.com/dashboard" target="_blank" rel="noreferrer" className="underline font-bold text-emerald-900">Open Vercel Dashboard</a>
+          </div>
+          <p className="text-gray-700 leading-relaxed">For security, the secret itself is never stored in Supabase, sent to this page, or saved in browser storage. Add <code className="font-mono">OPENROUTER_API_KEY</code> in Vercel → Project Settings → Environment Variables, then redeploy. This indicator confirms only that a value exists; it does not verify that the key is valid. Admin authentication uses <code className="font-mono">ADMIN_USERNAME</code>, <code className="font-mono">ADMIN_PASSWORD</code>, and <code className="font-mono">ADMIN_SESSION_SECRET</code>.</p>
         </section>
 
         <section className="p-4 bg-white border border-gray-300 rounded-xs space-y-4">
