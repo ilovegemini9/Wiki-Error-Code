@@ -9,7 +9,12 @@ export async function POST() {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
 
-  const apiKey = (await getOpenRouterApiKey())?.trim();
+  let apiKey: string | undefined;
+  try {
+    apiKey = (await getOpenRouterApiKey())?.trim();
+  } catch {
+    return NextResponse.json({ success: false, status: 'secret_store_error', error: 'Could not read the securely stored API key. Check server configuration.' }, { status: 500 });
+  }
   if (!apiKey) {
     return NextResponse.json({
       success: false,
@@ -19,63 +24,41 @@ export async function POST() {
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
+  const timeout = setTimeout(() => controller.abort(), 12000);
   try {
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://errorcodewiki.vercel.app',
-        'X-Title': 'ErrorCodeWiki Admin Connection Test',
-      },
-      body: JSON.stringify({
-        model: 'google/gemma-4-31b-it:free',
-        messages: [{ role: 'user', content: 'Reply with exactly: OK' }],
-        max_tokens: 8,
-        temperature: 0,
-      }),
+    const response = await fetch('https://openrouter.ai/api/v1/auth/key', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${apiKey}` },
       signal: controller.signal,
       cache: 'no-store',
     });
 
     if (!response.ok) {
-      const detail = (await response.text()).slice(0, 500);
       const status = response.status === 401 || response.status === 403
         ? 'invalid_key'
-        : response.status === 429
-          ? 'rate_limited'
-          : response.status === 402
-            ? 'credits_required'
-            : 'provider_error';
-      const friendly = status === 'invalid_key'
-        ? 'OpenRouter rejected the API key. Check that the key is correct and enabled.'
+        : response.status === 429 ? 'rate_limited' : 'provider_error';
+      const error = status === 'invalid_key'
+        ? 'OpenRouter rejected the saved key. Replace it with a valid API key.'
         : status === 'rate_limited'
-          ? 'OpenRouter rate-limited the test. Wait a little and try again.'
-          : status === 'credits_required'
-            ? 'OpenRouter says credits or billing are required for this request.'
-            : `OpenRouter returned HTTP ${response.status}. Check the provider details.`;
-      return NextResponse.json({ success: false, status, error: friendly, providerStatus: response.status, detail }, { status: 502 });
+          ? 'OpenRouter rate-limited key validation. Wait a moment and try again.'
+          : `OpenRouter key validation failed (HTTP ${response.status}).`;
+      return NextResponse.json({ success: false, status, error }, { status: 502 });
     }
 
     const data = await response.json();
-    const answer = data.choices?.[0]?.message?.content;
-    if (typeof answer !== 'string' || !answer.trim()) {
-      return NextResponse.json({ success: false, status: 'empty_response', error: 'OpenRouter accepted the request but returned an empty response.' }, { status: 502 });
-    }
-
     return NextResponse.json({
       success: true,
       status: 'connected',
-      message: 'OpenRouter API key is valid and the test model returned a response.',
-      model: data.model || 'google/gemma-4-31b-it:free',
+      message: 'OpenRouter accepted the saved API key.',
+      model: 'Key validation (provider authentication)',
+      keyInfo: data.data ? { label: data.data.label || undefined, limit: data.data.limit ?? undefined, limitRemaining: data.data.limit_remaining ?? undefined } : undefined,
     });
   } catch (error) {
     const aborted = error instanceof Error && error.name === 'AbortError';
     return NextResponse.json({
       success: false,
       status: aborted ? 'timeout' : 'connection_error',
-      error: aborted ? 'OpenRouter connection test timed out after 15 seconds.' : 'Could not reach OpenRouter. Check the deployment network and try again.',
+      error: aborted ? 'OpenRouter key validation timed out after 12 seconds.' : 'Could not reach OpenRouter. Check the deployment network and try again.',
     }, { status: 502 });
   } finally {
     clearTimeout(timeout);
