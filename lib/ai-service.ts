@@ -139,7 +139,13 @@ export async function executeWithCascadeFallback(options: AiGenerationOptions): 
         }
 
         const errText = await res.text();
-        if (res.status === 429) {
+        if (res.status === 401 || res.status === 403) {
+          // Authentication/authorization failures affect the whole OpenRouter account,
+          // not an individual model. Stop retrying models and try the configured Gemini fallback.
+          cascadeLogs.push(`❌ OpenRouter authentication failed (${res.status}). Check OPENROUTER_API_KEY in the server environment; skipping the remaining OpenRouter models.`);
+          cascadeLogs.push(`Provider detail: ${errText.slice(0, 180)}`);
+          break;
+        } else if (res.status === 429) {
           cascadeLogs.push(`⚠️ Model ${currentModel} rate-limited (429). Skipping immediately...`);
         } else if (res.status === 402) {
           cascadeLogs.push(`⚠️ Model ${currentModel} requires credits (402). Skipping immediately...`);
