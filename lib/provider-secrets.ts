@@ -26,17 +26,17 @@ function decrypt(value: string) {
 }
 
 export async function getOpenRouterApiKey(): Promise<string | undefined> {
-  const envKey = process.env.OPENROUTER_API_KEY?.trim();
-  if (envKey) return envKey;
-  if (!supabaseAdmin) return undefined;
-  const { data, error } = await (supabaseAdmin as any)
-    .from('global_settings')
-    .select(COLUMN)
-    .eq('id', 'global')
-    .maybeSingle();
-  if (error) throw error;
-  const encrypted = data?.[COLUMN];
-  return typeof encrypted === 'string' && encrypted ? decrypt(encrypted).trim() : undefined;
+  if (supabaseAdmin) {
+    const { data, error } = await (supabaseAdmin as any)
+      .from('global_settings')
+      .select(COLUMN)
+      .eq('id', 'global')
+      .maybeSingle();
+    if (error) throw error;
+    const encrypted = data?.[COLUMN];
+    if (typeof encrypted === 'string' && encrypted) return decrypt(encrypted).trim();
+  }
+  return process.env.OPENROUTER_API_KEY?.trim() || undefined;
 }
 
 export async function saveOpenRouterApiKey(apiKey: string): Promise<void> {
