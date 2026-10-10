@@ -12,7 +12,7 @@ export interface TopModelDefinition {
   isFree: boolean;
 }
 
-export const TOP_4_FREE_MODELS: TopModelDefinition[] = [
+export const TOP_FREE_MODELS: TopModelDefinition[] = [
   {
     id: 'google/gemma-4-31b-it:free',
     name: 'Google: Gemma 4 31B (free)',
@@ -81,7 +81,7 @@ export const TOP_4_FREE_MODELS: TopModelDefinition[] = [
   }
 ];
 
-export const CASCADE_MODEL_IDS = TOP_4_FREE_MODELS.map((model) => model.id);
+export const CASCADE_MODEL_IDS = TOP_FREE_MODELS.map((model) => model.id);
 
 export interface AiGenerationOptions {
   prompt: string;
@@ -156,9 +156,9 @@ export async function executeWithCascadeFallback(options: AiGenerationOptions): 
             // All current callers expect JSON. Validate it here so malformed or truncated
             // responses trigger the next model instead of failing later in the route.
             const normalizedContent = content
-              .replace(/^\`\`\`json\s*/i, '')
-              .replace(/^\`\`\`\s*/, '')
-              .replace(/\s*\`\`\`$/, '');
+              .replace(/^```json\s*/i, '')
+              .replace(/^```\s*/, '')
+              .replace(/\s*```$/, '');
             try {
               JSON.parse(normalizedContent);
               cascadeLogs.push(`✓ Model #${i + 1} (${currentModel}) returned valid JSON!`);
