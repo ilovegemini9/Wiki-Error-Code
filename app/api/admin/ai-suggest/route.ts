@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     // Normalize AI brand suggestions into individual brand records (never save "Brand A / Brand B" as one brand).
     const splitBrandNames = (value: unknown): string[] => {
       const values = Array.isArray(value) ? value : [value];
-      return values.flatMap(item => String(item || '').split(/\\s*(?:\\/|,|\\||;|\\s+&\\s+|\\s+or\\s+)\\s*/i))
+      return values.flatMap(item => String(item || '').split(/\s*(?:\/|,|\||;|\s+&\s+|\s+or\s+)\s*/i))
         .map(name => name.trim().replace(/^['"]|['"]$/g, ''))
         .filter(name => name.length > 1 && name.toLowerCase() !== 'generic');
     };
