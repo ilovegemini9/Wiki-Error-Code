@@ -29,7 +29,7 @@ const MASTER_PRESETS = [
   { code: '0x8027025a', brand: 'Microsoft Xbox', device: 'Xbox Series X', cat: 'gaming' },
   { code: 'F06', brand: 'Whirlpool', device: 'Front-Load Washer', cat: 'appliances' },
   { code: '502_BAD_GATEWAY', brand: 'Nginx / Cloudflare', device: 'Web Server', cat: 'software' },
-  { code: 'P0455', brand: 'Nissan / Ford', device: 'EVAP System', cat: 'automotive' },
+  { code: 'P0455', brand: 'Nissan', device: 'EVAP System', cat: 'automotive' },
   { code: 'E15', brand: 'Bosch', device: 'Dishwasher', cat: 'appliances' },
   { code: '2168-0002', brand: 'Nintendo Switch', device: 'Switch Console', cat: 'gaming' },
   { code: '4E', brand: 'Samsung', device: 'Washing Machine', cat: 'appliances' },
@@ -90,8 +90,13 @@ export async function checkAndRunAutomationServer(): Promise<boolean> {
       const cleanP = p.code.toLowerCase().replace(/[^a-z0-9]/g, '');
       return !existing.some((a) => a.errorCode.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanP);
     });
-    const candidateList = uncreated.length > 0 ? uncreated : MASTER_PRESETS;
-    const preset = candidateList[Math.floor(Math.random() * candidateList.length)];
+    // Never regenerate from the full preset pool when every code already exists.
+    if (uncreated.length === 0) {
+      const doneLog = { id: String(Date.now()), time: new Date().toLocaleTimeString(), text: 'ℹ️ [SERVER AUTOMATION] All configured preset error codes already have articles; skipped to prevent duplicates.', type: 'info' as const };
+      await saveSupabaseSettings({ lastAutomationRunTime: new Date().toISOString(), automationLogs: [doneLog, ...(settings.automationLogs || []).slice(0, 49)] });
+      return false;
+    }
+    const preset = uncreated[Math.floor(Math.random() * uncreated.length)];
 
     const languages = settings.automationLanguages?.length ? settings.automationLanguages : ['en', 'fr', 'es'];
     const targetLangCode = languages[Math.floor(Math.random() * languages.length)] || 'en';
@@ -101,7 +106,7 @@ export async function checkAndRunAutomationServer(): Promise<boolean> {
     const { category, brand } = await resolveTaxonomy(preset);
 
     const prompt = `You are a world-class senior IT engineer, diagnostic systems architect, and technical SEO content strategist.
-Generate an exhaustive diagnostic manual for error code "${preset.code}".
+Generate an exhaustive diagnostic manual for error code "${preset.code}". Preserve the exact supplied error code, brand, device, and category. Do not add other manufacturers to the title. Avoid duplicate numbering prefixes in step titles.
 Target output language: ${langObj.englishName} (${langObj.name}), code "${langObj.code}". Write all content natively in that language.
 Brand: ${preset.brand}. Device/subsystem: ${preset.device}. Category: ${category.name}.
 Generate ~1200+ words of useful technical content, at least 3 actionable solution methods, and 4 FAQs.
