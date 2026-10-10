@@ -338,9 +338,15 @@ export default function AiGeneratorPage() {
   };
 
   // Fetch AI Suggestions for all fields
-  const handleFetchAiSuggestions = async (overrideCode?: string, autofill = false, overrideLang?: string) => {
+  const handleFetchAiSuggestions = async (
+    overrideCode?: string,
+    autofill = false,
+    overrideLang?: string,
+    context?: { brand: string; device: string; category: string }
+  ) => {
     const codeToUse = overrideCode || errorCode;
     const langToUse = overrideLang || language;
+    // Pass clicked preset values directly because React state updates asynchronously.
     if (!codeToUse.trim()) {
       setError('Please enter an error code first to get AI suggestions');
       return;
@@ -355,9 +361,9 @@ export default function AiGeneratorPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           errorCode: codeToUse,
-          brand,
-          device,
-          category,
+          brand: context?.brand || brand,
+          device: context?.device || device,
+          category: context?.category || category,
           language: langToUse,
           model
         })
@@ -392,7 +398,11 @@ export default function AiGeneratorPage() {
     setBrand(preset.brand);
     setDevice(preset.device);
     setCategory(preset.cat);
-    handleFetchAiSuggestions(preset.code, true);
+    handleFetchAiSuggestions(preset.code, true, undefined, {
+      brand: preset.brand,
+      device: preset.device,
+      category: preset.cat,
+    });
   };
 
   const handleToggleKeywordTag = (tag: string) => {
