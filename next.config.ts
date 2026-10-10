@@ -30,7 +30,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  transpilePackages: ['motion'],
   async headers() {
     return [
       {
