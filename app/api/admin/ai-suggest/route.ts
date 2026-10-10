@@ -8,15 +8,16 @@ import { getOpenRouterApiKey } from '@/lib/provider-secrets';
 
 export const dynamic = 'force-dynamic';
 
-function fallback(code: string) {
+function fallback(code: string, requestedBrand = '', requestedDevice = '', requestedCategory = '') {
   const c = code.toLowerCase().trim();
-  let brand = 'Microsoft', device = 'Windows 11 PC', category = 'windows';
+  let brand = requestedBrand || 'Generic', device = requestedDevice || 'General Device', category = requestedCategory || 'software';
   let keywords = [`${code} fix`, `${code} error code`, 'troubleshooting', 'error manual'];
-  if (/^(p0|p1|b0|c0)/.test(c)) { brand = 'Toyota / General Motors'; device = 'Vehicle Engine ECU / OBD-II Scanner'; category = 'automotive'; keywords = [`${code} obd2`, `${code} engine light`, 'diagnostic trouble code', 'car repair']; }
-  else if (/^e-|paper|ink|^50\.|^e2/.test(c)) { brand = 'Epson / Canon / HP'; device = 'InkJet / Laser Printer'; category = 'printers'; keywords = [`${code} printer error`, 'paper jam fix', 'printer offline', 'maintenance reset']; }
-  else if (/^(ce-|su-|ws-)|e82/.test(c)) { brand = 'Sony PlayStation'; device = 'PlayStation 5 / PS4 Console'; category = 'gaming'; keywords = [`${code} ps5 error`, 'playstation network fix', 'game crash', 'system software update']; }
-  else if (/^(e24|e15|f21|oe)/.test(c)) { brand = 'Bosch / Whirlpool / Samsung'; device = 'Dishwasher / Washing Machine'; category = 'appliances'; keywords = [`${code} appliance error`, 'drain pump error', 'water supply code', 'reset cycle']; }
-  else if (/^err_|500|404|502/.test(c)) { brand = 'Google Chrome / Nginx / Apache'; device = 'Web Server / Chrome Browser'; category = 'software'; keywords = [`${code} server error`, 'http status code', 'connection refused', 'dns fix']; }
+  if (/^p\d{4}$/.test(c) || /^(b|c|u)\d{4}$/.test(c)) { brand = requestedBrand || 'Toyota'; device = requestedDevice || 'Vehicle Engine ECU / OBD-II Scanner'; category = 'automotive'; keywords = [`${code} obd2`, `${code} engine light`, 'diagnostic trouble code', 'car repair']; }
+  else if (/^0x87e|^0x8027025a|^e10[0-9]|^ce-|^su-|^ws-|^2168-/.test(c)) { brand = requestedBrand || 'Microsoft Xbox'; device = requestedDevice || 'Gaming Console'; category = 'gaming'; keywords = [`${code} console error`, 'game launch fix', 'system update', 'console troubleshooting']; }
+  else if (/^e-|paper|ink|^50\.|^79$|^5100$|^b200$|^0x97$|^0x9a$/.test(c)) { brand = requestedBrand || 'Epson'; device = requestedDevice || 'InkJet / Laser Printer'; category = 'printers'; keywords = [`${code} printer error`, 'paper jam fix', 'printer offline', 'maintenance reset']; }
+  else if (/^(e24|e15|f21|f06|oe|le|4e|5e|e4)$/.test(c)) { brand = requestedBrand || 'Samsung'; device = requestedDevice || 'Dishwasher / Washing Machine'; category = 'appliances'; keywords = [`${code} appliance error`, 'drain pump error', 'water supply code', 'reset cycle']; }
+  else if (/^err_|^net::err_|^dns_probe_|^(500|401|403|404|429|502|503|504)(_|$)|econnreset|enotfound|sqlstate/.test(c)) { brand = requestedBrand || 'Google Chrome'; device = requestedDevice || 'Web Browser / Server'; category = 'software'; keywords = [`${code} server error`, 'http status code', 'connection refused', 'dns fix']; }
+  else if (/^0x|critical_process_died|inaccessible_boot_device|whea_uncorrectable_error/.test(c)) { brand = requestedBrand || 'Microsoft'; device = requestedDevice || 'Windows 11 PC'; category = 'windows'; }
   return { brand, device, category, keywords, brands: [brand, 'Microsoft', 'Apple', 'HP', 'Canon'], devices: [device, 'Windows 11 PC', 'PS5 Console', 'OBD-II Scanner', 'Printer'], suggestedTitle: code ? `How to Fix ${code} Error Code (${brand} ${device})` : 'Diagnostic Troubleshooting Manual', suggestedOutline: ['Symptoms & Meaning', 'Quick Fix Checklist', 'Advanced Step-by-Step Solution', 'Preventive Maintenance'] };
 }
 
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
     const langObj = getLanguageByCode(language);
     const settings = await getSupabaseSettings();
     const openRouterApiKey = await getOpenRouterApiKey();
-    let suggestion: any = fallback(errorCode);
+    let suggestion: any = fallback(errorCode, brand, device, category);
 
     if (errorCode) {
       try {
