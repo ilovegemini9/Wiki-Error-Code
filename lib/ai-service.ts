@@ -156,9 +156,9 @@ export async function executeWithCascadeFallback(options: AiGenerationOptions): 
             // All current callers expect JSON. Validate it here so malformed or truncated
             // responses trigger the next model instead of failing later in the route.
             const normalizedContent = content
-              .replace(/^\`\`\`json\\s*/i, '')
-              .replace(/^\`\`\`\\s*/, '')
-              .replace(/\\s*\`\`\`$/, '');
+              .replace(/^\`\`\`json\s*/i, '')
+              .replace(/^\`\`\`\s*/, '')
+              .replace(/\s*\`\`\`$/, '');
             try {
               JSON.parse(normalizedContent);
               cascadeLogs.push(`✓ Model #${i + 1} (${currentModel}) returned valid JSON!`);
