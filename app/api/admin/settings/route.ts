@@ -13,7 +13,11 @@ export async function GET() {
   try {
     checkAndRunAutomationServer().catch(() => {});
     const settings = await getSupabaseSettings();
-    return NextResponse.json({ settings });
+    // Never return the secret itself; expose only a boolean status to the authenticated admin.
+    return NextResponse.json({
+      settings,
+      providerStatus: { hasOpenRouterApiKey: Boolean(process.env.OPENROUTER_API_KEY?.trim()) },
+    });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Failed to load settings' }, { status: 500 });
   }
