@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isAuthenticatedAdmin } from '@/lib/auth';
 import { checkAndRunAutomationServer } from '@/lib/automation-runner';
 import { getSupabaseSettings, saveSupabaseSettings } from '@/lib/supabase-db';
+import { hasOpenRouterApiKey } from '@/lib/provider-secrets';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +17,7 @@ export async function GET() {
     // Never return the secret itself; expose only a boolean status to the authenticated admin.
     return NextResponse.json({
       settings,
-      providerStatus: { hasOpenRouterApiKey: Boolean(process.env.OPENROUTER_API_KEY?.trim()) },
+      providerStatus: { hasOpenRouterApiKey: await hasOpenRouterApiKey() },
     });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Failed to load settings' }, { status: 500 });
