@@ -4,6 +4,7 @@ import { getLanguageByCode } from '@/lib/languages';
 import { executeWithCascadeFallback } from '@/lib/ai-service';
 import { getSupabaseArticles, getSupabaseBrands, getSupabaseCategories, getSupabaseSettings } from '@/lib/supabase-db';
 import { saveSupabaseBrand, saveSupabaseCategory } from '@/lib/supabase-admin';
+import { getOpenRouterApiKey } from '@/lib/provider-secrets';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,13 +32,14 @@ export async function POST(req: NextRequest) {
     const model = String(body.model || 'nvidia/nemotron-3-ultra-550b-a55b:free');
     const langObj = getLanguageByCode(language);
     const settings = await getSupabaseSettings();
+    const openRouterApiKey = await getOpenRouterApiKey();
     let suggestion: any = fallback(errorCode);
 
     if (errorCode) {
       try {
         const result = await executeWithCascadeFallback({
           prompt: `Given technical error code "${errorCode}" with Brand "${brand}" and Device "${device}", return only JSON with brand, device, category, keywords, alternativeBrands, alternativeDevices, suggestedTitle, suggestedOutline. All text should be native ${langObj.englishName}. Never use placeholders.`,
-          temperature: 0.3, selectedModel: model, openRouterApiKey: process.env.OPENROUTER_API_KEY,
+          temperature: 0.3, selectedModel: model, openRouterApiKey,
           siteUrl: settings.siteUrl || 'https://errorcodewiki.org', siteName: settings.siteName || 'ErrorCodeWiki',
           systemPrompt: 'You are an expert diagnostic assistant. Output strict JSON only.'
         });
