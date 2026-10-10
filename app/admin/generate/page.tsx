@@ -1347,7 +1347,7 @@ export default function AiGeneratorPage() {
               className="w-full bg-white border border-gray-300 p-2 font-mono text-[11px] rounded-xs font-medium"
             >
               <option value="auto_cascade">⚡ [RECOMMANDÉ] Cascade Auto: Top 3 Gratuits (Nemotron 3 Ultra ➔ Laguna S 2.1 ➔ Nemotron 3.5 Lightning ➔ Gemini)</option>
-              <option value="nvidia/nemotron-3-ultra:free">★ #1 NVIDIA: Nemotron 3 Ultra (free) - 550B MoE (1M context)</option>
+              <option value="nvidia/nemotron-3-ultra-550b-a55b:free">★ #1 NVIDIA: Nemotron 3 Ultra (free) - 550B MoE (1M context)</option>
               <option value="poolside/laguna-s-2.1:free">★ #2 Poolside: Laguna S 2.1 (free) - 118B Code & Diag (262K)</option>
               <option value="nvidia/nemotron-3.5-lightning:free">★ #3 NVIDIA: Nemotron 3.5 Lightning (free) - 30B MoE (1M context)</option>
               <option value="gemini-3.6-flash">Google Gemini 3.6 Flash (Secours Serveur)</option>
