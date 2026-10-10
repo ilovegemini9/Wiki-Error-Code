@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     const device = String(body.device || '');
     const category = String(body.category || '');
     const language = String(body.language || 'en');
-    const model = String(body.model || 'nvidia/nemotron-3-ultra-550b-a55b:free');
+    const model = String(body.model || 'auto_cascade');
     const langObj = getLanguageByCode(language);
     const settings = await getSupabaseSettings();
     const openRouterApiKey = await getOpenRouterApiKey();
