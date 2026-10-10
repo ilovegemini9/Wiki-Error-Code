@@ -23,6 +23,8 @@ export default function SettingsAdminPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasOpenRouterApiKey, setHasOpenRouterApiKey] = useState<boolean | null>(null);
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [connectionResult, setConnectionResult] = useState<{ success: boolean; text: string } | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
@@ -40,6 +42,24 @@ export default function SettingsAdminPage() {
   }, []);
 
   const update = <K extends keyof Settings>(key: K, value: Settings[K]) => setSettings((current) => ({ ...current, [key]: value }));
+
+  const testOpenRouterConnection = async () => {
+    setTestingConnection(true);
+    setConnectionResult(null);
+    try {
+      const res = await fetch('/api/admin/ai-connection-test', { method: 'POST', cache: 'no-store' });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setConnectionResult({ success: false, text: data.error || 'OpenRouter connection test failed.' });
+        return;
+      }
+      setConnectionResult({ success: true, text: `${data.message} Model: ${data.model}.` });
+    } catch {
+      setConnectionResult({ success: false, text: 'Could not run the test. Check your connection and try again.' });
+    } finally {
+      setTestingConnection(false);
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,7 +104,13 @@ export default function SettingsAdminPage() {
             </span>
             <a href="https://vercel.com/dashboard" target="_blank" rel="noreferrer" className="underline font-bold text-emerald-900">Open Vercel Dashboard</a>
           </div>
-          <p className="text-gray-700 leading-relaxed">For security, the secret itself is never stored in Supabase, sent to this page, or saved in browser storage. Add <code className="font-mono">OPENROUTER_API_KEY</code> in Vercel → Project Settings → Environment Variables, then redeploy. This indicator confirms only that a value exists; it does not verify that the key is valid. Admin authentication uses <code className="font-mono">ADMIN_USERNAME</code>, <code className="font-mono">ADMIN_PASSWORD</code>, and <code className="font-mono">ADMIN_SESSION_SECRET</code>.</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="button" onClick={testOpenRouterConnection} disabled={testingConnection || !hasOpenRouterApiKey} className="px-4 py-2 bg-emerald-900 hover:bg-emerald-800 text-white font-bold rounded-xs disabled:opacity-50">
+              {testingConnection ? 'Testing OpenRouter…' : 'Test API Connection'}
+            </button>
+            {connectionResult && <span role="status" className={connectionResult.success ? 'text-green-800 font-bold' : 'text-red-700 font-bold'}>{connectionResult.text}</span>}
+          </div>
+          <p className="text-gray-700 leading-relaxed">For security, the secret itself is never stored in Supabase, sent to this page, or saved in browser storage. Add <code className="font-mono">OPENROUTER_API_KEY</code> in Vercel → Project Settings → Environment Variables, then redeploy. The test sends a tiny request to OpenRouter and checks the provider response; it may be subject to provider rate limits. Admin authentication uses <code className="font-mono">ADMIN_USERNAME</code>, <code className="font-mono">ADMIN_PASSWORD</code>, and <code className="font-mono">ADMIN_SESSION_SECRET</code>.</p>
         </section>
 
         <section className="p-4 bg-white border border-gray-300 rounded-xs space-y-4">
