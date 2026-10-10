@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { isAuthenticatedAdmin } from '@/lib/auth';
+import { getOpenRouterApiKey } from '@/lib/provider-secrets';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,12 +9,12 @@ export async function POST() {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
 
-  const apiKey = process.env.OPENROUTER_API_KEY?.trim();
+  const apiKey = (await getOpenRouterApiKey())?.trim();
   if (!apiKey) {
     return NextResponse.json({
       success: false,
       status: 'missing_key',
-      error: 'OPENROUTER_API_KEY is missing from this deployment environment. Add it in Vercel and redeploy.',
+      error: 'No OpenRouter API key is configured. Save one in Admin Settings first.',
     }, { status: 400 });
   }
 
