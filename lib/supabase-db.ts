@@ -42,11 +42,11 @@ function rowToArticle(row: any): Article {
 }
 
 function rowToCategory(row: any): Category {
-  return { id: row.id, name: row.name, slug: row.slug, icon: row.icon || 'FolderTree', description: row.description || '' };
+  return { id: row.id, name: row.name, slug: row.slug, icon: row.icon || 'FolderTree', description: row.description || '', language: row.language || 'en' };
 }
 
 function rowToCalculator(row: any): Brand {
-  return { id: row.id, name: row.name, slug: row.slug, categoryId: row.category_id || '', deviceTypes: Array.isArray(row.device_types) ? row.device_types : [], description: row.description || '' };
+  return { id: row.id, name: row.name, slug: row.slug, logoUrl: row.logo_url || undefined, categoryId: row.category_id || '', deviceTypes: Array.isArray(row.device_types) ? row.device_types : [], description: row.description || '', language: row.language || 'en' };
 }
 
 function rowToSettings(row: any): Settings {
