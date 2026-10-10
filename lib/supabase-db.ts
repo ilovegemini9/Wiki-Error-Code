@@ -9,32 +9,32 @@ function requireClient() {
 function rowToArticle(row: any): Article {
   return {
     id: row.id,
-    errorCode: row.calculator_id || row.slug || row.id,
+    errorCode: row.error_code || row.slug || row.id,
     title: row.title || '',
     slug: row.slug || row.id,
     metaTitle: row.meta_title || '',
     metaDescription: row.meta_description || '',
-    shortDefinition: row.meta_description || '',
-    meaning: row.content || '',
-    causes: [],
-    solutions: [],
-    technicalExplanation: row.content || '',
-    faq: [],
-    schemaJsonLd: row.schema_json_ld || undefined,
+    shortDefinition: row.short_definition || row.meta_description || '',
+    meaning: row.meaning || '',
+    causes: Array.isArray(row.causes) ? row.causes : [],
+    solutions: Array.isArray(row.solutions) ? row.solutions : [],
+    technicalExplanation: row.technical_explanation || '',
+    faq: Array.isArray(row.faq) ? row.faq : [],
+    schemaJsonLd: row.schema_jsonld || undefined,
     canonicalUrl: row.canonical_url || undefined,
     categoryId: row.category_id || '',
-    brandId: row.calculator_id || '',
+    brandId: row.brand_id || '',
     deviceType: '',
     language: 'en',
     keywords: [],
     tags: [],
-    featuredImage: row.og_image || undefined,
+    featuredImage: row.featured_image || undefined,
     status: row.status === 'draft' ? 'draft' : 'published',
-    readingTime: `${row.reading_time || 1} min read`,
+    readingTime: `${row.reading_time || '1'} min read`,
     internalLinks: [],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    scheduledFor: row.published_at || undefined,
+    scheduledFor: row.scheduled_for || undefined,
     viewsCount: 0,
     seoScore: undefined,
     aiGenerated: row.ai_generated ?? false,
@@ -49,22 +49,22 @@ function rowToCalculator(row: any): Brand {
   return { id: row.id, name: row.name, slug: row.slug, categoryId: row.category_id || '', deviceTypes: [], description: row.description || '' };
 }
 
-function rowToSettings(app: any, seo: any, ai: any): Settings {
+function rowToSettings(row: any): Settings {
   return {
-    siteName: seo?.site_title || 'CalculatorFree',
-    siteUrl: seo?.site_url || app?.site_url || '',
+    siteName: row?.site_name || 'Wiki Error Code',
+    siteUrl: row?.site_url || '',
     openRouterApiKey: '',
-    defaultAiModel: ai?.article_model || 'auto_cascade',
-    language: 'en',
-    googleAnalyticsId: app?.analytics_code || undefined,
-    googleSearchConsoleTag: seo?.google_verification || undefined,
-    robotsTxtContent: seo?.robots_txt || undefined,
-    defaultLanguage: 'en',
-    sitemapSettings: { autoUpdate: seo?.sitemap_enabled ?? true, includeImages: true },
-    automationActive: ai?.ai_enabled ?? false,
-    automationIntervalMinutes: 60,
-    automationPublishStatus: 'published',
-    automationModel: ai?.article_model || undefined,
+    defaultAiModel: row?.default_ai_model || 'auto_cascade',
+    language: row?.language || 'en',
+    googleAnalyticsId: row?.google_analytics_id || undefined,
+    googleSearchConsoleTag: row?.google_search_console_tag || undefined,
+    robotsTxtContent: row?.robots_txt_content || undefined,
+    defaultLanguage: row?.default_language || 'en',
+    sitemapSettings: row?.sitemap_settings || { autoUpdate: true, includeImages: true },
+    automationActive: row?.automation_active ?? false,
+    automationIntervalMinutes: row?.automation_interval_minutes || 60,
+    automationPublishStatus: row?.automation_publish_status || 'published',
+    automationModel: row?.automation_model || row?.default_ai_model || undefined,
   };
 }
 
@@ -76,20 +76,20 @@ export async function getSupabaseArticles(params?: { status?: 'draft' | 'publish
   if (params?.status && params.status !== 'all') query = query.eq('status', params.status);
 
   if (params?.categorySlug) {
-    const { data, error } = await client.from('article_categories').select('id').eq('slug', params.categorySlug.toLowerCase().trim()).limit(1).maybeSingle();
+    const { data, error } = await client.from('categories').select('id').eq('slug', params.categorySlug.toLowerCase().trim()).limit(1).maybeSingle();
     if (error) throw error;
     if (!data) return { articles: [], total: 0 };
     query = query.eq('category_id', data.id);
   }
   if (params?.brandSlug) {
-    const { data, error } = await client.from('calculators').select('id').eq('slug', params.brandSlug.toLowerCase().trim()).limit(1).maybeSingle();
+    const { data, error } = await client.from('brands').select('id').eq('slug', params.brandSlug.toLowerCase().trim()).limit(1).maybeSingle();
     if (error) throw error;
     if (!data) return { articles: [], total: 0 };
-    query = query.eq('calculator_id', data.id);
+    query = query.eq('brand_id', data.id);
   }
   if (params?.search?.trim()) {
     const q = params.search.trim().replace(/[%(),]/g, ' ');
-    query = query.or(`title.ilike.%${q}%,slug.ilike.%${q}%,content.ilike.%${q}%`);
+    query = query.or(`title.ilike.%${q}%,slug.ilike.%${q}%,meaning.ilike.%${q}%`);
   }
   const { data, error, count } = await query;
   if (error) throw error;
@@ -103,39 +103,39 @@ export async function getSupabaseArticleBySlug(slug: string): Promise<Article | 
 }
 
 export async function getSupabaseCategories(): Promise<Category[]> {
-  const { data, error } = await requireClient().from('article_categories').select('*').order('name');
+  const { data, error } = await requireClient().from('categories').select('*').order('name');
   if (error) throw error;
   return (data || []).map(rowToCategory);
 }
 
 export async function getSupabaseCategoryBySlug(slug: string): Promise<Category | null> {
-  const { data, error } = await requireClient().from('article_categories').select('*').eq('slug', slug.toLowerCase().trim()).limit(1).maybeSingle();
+  const { data, error } = await requireClient().from('categories').select('*').eq('slug', slug.toLowerCase().trim()).limit(1).maybeSingle();
   if (error) throw error;
   return data ? rowToCategory(data) : null;
 }
 
 export async function getSupabaseCategoryById(id: string): Promise<Category | null> {
   if (!id) return null;
-  const { data, error } = await requireClient().from('article_categories').select('*').eq('id', id).limit(1).maybeSingle();
+  const { data, error } = await requireClient().from('categories').select('*').eq('id', id).limit(1).maybeSingle();
   if (error) throw error;
   return data ? rowToCategory(data) : null;
 }
 
 export async function getSupabaseBrands(): Promise<Brand[]> {
-  const { data, error } = await requireClient().from('calculators').select('*').order('name');
+  const { data, error } = await requireClient().from('brands').select('*').order('name');
   if (error) throw error;
   return (data || []).map(rowToCalculator);
 }
 
 export async function getSupabaseBrandBySlug(slug: string, _language?: string): Promise<Brand | null> {
-  const { data, error } = await requireClient().from('calculators').select('*').eq('slug', slug.toLowerCase().trim()).limit(1).maybeSingle();
+  const { data, error } = await requireClient().from('brands').select('*').eq('slug', slug.toLowerCase().trim()).limit(1).maybeSingle();
   if (error) throw error;
   return data ? rowToCalculator(data) : null;
 }
 
 export async function getSupabaseBrandById(id: string): Promise<Brand | null> {
   if (!id) return null;
-  const { data, error } = await requireClient().from('calculators').select('*').eq('id', id).limit(1).maybeSingle();
+  const { data, error } = await requireClient().from('brands').select('*').eq('id', id).limit(1).maybeSingle();
   if (error) throw error;
   return data ? rowToCalculator(data) : null;
 }
@@ -145,29 +145,35 @@ export async function saveSupabaseArticle(article: Partial<Article> & { errorCod
   const now = new Date().toISOString();
   const payload = {
     id: article.id || `art-${Date.now()}`,
+    error_code: article.errorCode,
     slug: article.slug || `${article.errorCode.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}`,
     title: article.title.trim(),
-    content: article.meaning || article.technicalExplanation || article.shortDefinition || '',
-    status: article.status || 'published',
-    reading_time: Number.parseInt(article.readingTime || '1', 10) || 1,
-    version: 1,
     meta_title: article.metaTitle || article.title,
     meta_description: article.metaDescription || article.shortDefinition || '',
+    short_definition: article.shortDefinition || article.metaDescription || '',
+    meaning: article.meaning || '',
+    causes: article.causes || [],
+    solutions: article.solutions || [],
+    technical_explanation: article.technicalExplanation || '',
+    faq: article.faq || [],
+    schema_jsonld: article.schemaJsonLd || null,
     canonical_url: article.canonicalUrl || null,
-    og_title: article.metaTitle || article.title,
-    og_description: article.metaDescription || null,
-    og_image: article.featuredImage || null,
-    twitter_title: article.metaTitle || article.title,
-    twitter_card: 'summary_large_image',
-    schema_json_ld: article.schemaJsonLd || null,
-    calculator_id: article.brandId || null,
     category_id: article.categoryId || null,
+    brand_id: article.brandId || null,
+    device_type: article.deviceType || null,
+    language: article.language || 'en',
+    keywords: article.keywords || [],
+    tags: article.tags || [],
+    featured_image: article.featuredImage || null,
+    status: article.status || 'published',
+    reading_time: article.readingTime || '1 min read',
+    internal_links: article.internalLinks || [],
     ai_generated: article.aiGenerated ?? false,
-    ai_model: null,
-    ai_generated_at: article.aiGenerated ? now : null,
     created_at: article.createdAt || now,
     updated_at: now,
-    published_at: article.status === 'published' ? (article.scheduledFor || now) : null,
+    scheduled_for: article.scheduledFor || null,
+    views_count: article.viewsCount || 0,
+    seo_score: article.seoScore ?? null,
   };
   const { data, error } = await client.from('articles').upsert(payload, { onConflict: 'id' }).select('*').single();
   if (error) throw error;
@@ -178,12 +184,14 @@ export async function saveSupabaseAiGenerationLog(log: { id?: string; errorCode?
   const { error } = await requireClient().from('ai_generation_logs').upsert({
     id: log.id || `ai-${Date.now()}`,
     model: log.model || null,
-    prompt: log.promptText || null,
-    tokens_used: typeof log.usage === 'object' && log.usage && 'tokens' in log.usage ? Number((log.usage as any).tokens) || null : null,
-    cost: null,
-    success: log.status === 'completed',
-    error: log.status === 'failed' ? (log.responseSummary || 'AI generation failed') : null,
-    task_type: log.errorCode || log.brand || 'article_generation',
+    error_code: log.errorCode || null,
+    brand: log.brand || null,
+    device: log.device || null,
+    status: log.status,
+    article_id: log.articleId || null,
+    prompt_text: log.promptText || null,
+    response_summary: log.responseSummary || null,
+    usage: log.usage && typeof log.usage === 'object' ? log.usage : {},
     created_at: new Date().toISOString(),
   }, { onConflict: 'id' });
   if (error) throw error;
@@ -200,36 +208,28 @@ export async function deleteSupabaseArticle(id: string): Promise<boolean> {
 }
 
 export async function getSupabaseSettings(): Promise<Settings> {
-  const client = requireClient();
-  const [app, seo, ai] = await Promise.all([
-    client.from('app_settings').select('*').eq('id', 'global').limit(1).maybeSingle(),
-    client.from('seo_settings').select('*').eq('id', 'global').limit(1).maybeSingle(),
-    client.from('ai_settings').select('*').eq('id', 'global').limit(1).maybeSingle(),
-  ]);
-  if (app.error) throw app.error;
-  if (seo.error) throw seo.error;
-  if (ai.error) throw ai.error;
-  return rowToSettings(app.data, seo.data, ai.data);
+  const { data, error } = await requireClient().from('global_settings').select('*').eq('id', 'global').limit(1).maybeSingle();
+  if (error) throw error;
+  return rowToSettings(data);
 }
 
 export async function saveSupabaseSettings(settings: Partial<Settings>): Promise<Settings> {
   const client = requireClient();
-  const appPayload: Record<string, unknown> = { id: 'global' };
-  const seoPayload: Record<string, unknown> = { id: 'global' };
-  const aiPayload: Record<string, unknown> = { id: 'global' };
-  if (settings.siteUrl !== undefined) { appPayload.site_url = settings.siteUrl; seoPayload.site_url = settings.siteUrl; seoPayload.canonical_base = settings.siteUrl; }
-  if (settings.siteName !== undefined) seoPayload.site_title = settings.siteName;
-  if (settings.googleSearchConsoleTag !== undefined) seoPayload.google_verification = settings.googleSearchConsoleTag || null;
-  if (settings.robotsTxtContent !== undefined) seoPayload.robots_txt = settings.robotsTxtContent || null;
-  if (settings.sitemapSettings?.autoUpdate !== undefined) seoPayload.sitemap_enabled = settings.sitemapSettings.autoUpdate;
-  if (settings.googleAnalyticsId !== undefined) appPayload.analytics_code = settings.googleAnalyticsId || null;
-  if (settings.automationActive !== undefined) aiPayload.ai_enabled = settings.automationActive;
-  if (settings.defaultAiModel !== undefined) aiPayload.article_model = settings.defaultAiModel;
-  const writes: Promise<unknown>[] = [];
-  if (Object.keys(appPayload).length > 1) writes.push(client.from('app_settings').upsert(appPayload, { onConflict: 'id' }));
-  if (Object.keys(seoPayload).length > 1) writes.push(client.from('seo_settings').upsert(seoPayload, { onConflict: 'id' }));
-  if (Object.keys(aiPayload).length > 1) writes.push(client.from('ai_settings').upsert(aiPayload, { onConflict: 'id' }));
-  const results = await Promise.all(writes);
-  for (const result of results as any[]) if (result.error) throw result.error;
+  const payload: Record<string, unknown> = { id: 'global', updated_at: new Date().toISOString() };
+  if (settings.siteName !== undefined) payload.site_name = settings.siteName;
+  if (settings.siteUrl !== undefined) payload.site_url = settings.siteUrl;
+  if (settings.defaultAiModel !== undefined) payload.default_ai_model = settings.defaultAiModel;
+  if (settings.language !== undefined) payload.language = settings.language;
+  if (settings.googleAnalyticsId !== undefined) payload.google_analytics_id = settings.googleAnalyticsId || null;
+  if (settings.googleSearchConsoleTag !== undefined) payload.google_search_console_tag = settings.googleSearchConsoleTag || null;
+  if (settings.robotsTxtContent !== undefined) payload.robots_txt_content = settings.robotsTxtContent || null;
+  if (settings.defaultLanguage !== undefined) payload.default_language = settings.defaultLanguage;
+  if (settings.sitemapSettings !== undefined) payload.sitemap_settings = settings.sitemapSettings;
+  if (settings.automationActive !== undefined) payload.automation_active = settings.automationActive;
+  if (settings.automationIntervalMinutes !== undefined) payload.automation_interval_minutes = settings.automationIntervalMinutes;
+  if (settings.automationPublishStatus !== undefined) payload.automation_publish_status = settings.automationPublishStatus;
+  if (settings.automationModel !== undefined) payload.automation_model = settings.automationModel;
+  const { error } = await client.from('global_settings').upsert(payload, { onConflict: 'id' });
+  if (error) throw error;
   return getSupabaseSettings();
 }
