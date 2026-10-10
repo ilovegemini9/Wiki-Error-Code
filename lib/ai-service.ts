@@ -14,47 +14,69 @@ export interface TopModelDefinition {
 
 export const TOP_4_FREE_MODELS: TopModelDefinition[] = [
   {
-    id: 'nvidia/nemotron-3-ultra-550b-a55b:free',
-    name: 'NVIDIA: Nemotron 3 Ultra (free)',
-    provider: 'NVIDIA',
-    badge: '★ #1 Reasoning & Automation',
-    context: '1M context',
+    id: 'google/gemma-4-31b-it:free',
+    name: 'Google: Gemma 4 31B (free)',
+    provider: 'Google',
+    badge: '★ Primary fallback · Structured JSON',
+    context: '262K context',
     tokens: 'Free',
     rank: 1,
-    description: 'Strong reasoning, coding, tool use and long-horizon agent workflows.',
+    description: 'Multilingual technical writing, code explanations and reliable JSON output.',
     isFree: true
   },
   {
-    id: 'nvidia/nemotron-3-nano-30b-a3b:free',
-    name: 'NVIDIA: Nemotron 3 Nano 30B A3B (free)',
+    id: 'nvidia/nemotron-3-ultra-550b-a55b:free',
+    name: 'NVIDIA: Nemotron 3 Ultra (free)',
     provider: 'NVIDIA',
-    badge: '★ #2 Efficient Agentic',
-    context: '256K context',
+    badge: 'Reasoning & technical writing',
+    context: '1M context',
     tokens: 'Free',
     rank: 2,
-    description: 'Efficient open MoE model for specialized agentic AI and technical generation.',
+    description: 'Strong reasoning, coding and long-context technical generation.',
     isFree: true
   },
   {
     id: 'google/gemma-4-26b-a4b-it:free',
     name: 'Google: Gemma 4 26B A4B (free)',
     provider: 'Google',
-    badge: '★ #3 Multilingual & Structured',
+    badge: 'Multilingual fallback',
     context: '256K context',
     tokens: 'Free',
     rank: 3,
-    description: 'Multimodal instruction model with strong multilingual and structured-output support.',
+    description: 'Multilingual instruction following and structured-output support.',
     isFree: true
   },
   {
-    id: 'google/gemma-4-31b-it:free',
-    name: 'Google: Gemma 4 31B Instruct (free)',
-    provider: 'Google',
-    badge: '★ #4 General Purpose',
+    id: 'cohere/north-mini-code:free',
+    name: 'Cohere: North Mini Code (free)',
+    provider: 'Cohere',
+    badge: 'Code fallback',
     context: '256K context',
     tokens: 'Free',
     rank: 4,
-    description: 'Strong general-purpose instruction model for technical and multilingual generation.',
+    description: 'Specialized coding model for code examples and software troubleshooting.',
+    isFree: true
+  },
+  {
+    id: 'thinkingmachines/inkling-small:free',
+    name: 'Thinking Machines: Inkling Small (free)',
+    provider: 'Thinking Machines',
+    badge: 'Experimental fallback',
+    context: '1M context',
+    tokens: 'Free',
+    rank: 5,
+    description: 'Reasoning, coding and multilingual generation. Free endpoint may require an agentic harness.',
+    isFree: true
+  },
+  {
+    id: 'thinkingmachines/inkling:free',
+    name: 'Thinking Machines: Inkling (free)',
+    provider: 'Thinking Machines',
+    badge: 'Experimental fallback',
+    context: '1M context',
+    tokens: 'Free',
+    rank: 6,
+    description: 'Large reasoning and multilingual model. Free endpoint may require an agentic harness.',
     isFree: true
   }
 ];
