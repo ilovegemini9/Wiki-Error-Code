@@ -14,9 +14,9 @@ export interface TopModelDefinition {
 
 export const TOP_4_FREE_MODELS: TopModelDefinition[] = [
   {
-    id: 'z-ai/glm-5.2:free',
-    name: 'Z.ai: GLM 5.2 (free)',
-    provider: 'Z.ai',
+    id: 'nvidia/nemotron-3-ultra-550b-a55b:free',
+    name: 'NVIDIA: Nemotron 3 Ultra (free)',
+    provider: 'NVIDIA',
     badge: '★ #1 Reasoning & Automation',
     context: '1M context',
     tokens: 'Free',
