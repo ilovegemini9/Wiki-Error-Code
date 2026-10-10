@@ -39,13 +39,14 @@ export async function POST(req: NextRequest) {
     if (errorCode) {
       try {
         const result = await executeWithCascadeFallback({
-          prompt: `Given technical error code "${errorCode}" with Brand "${brand}" and Device "${device}", return only JSON with brand, device, category, keywords, alternativeBrands, alternativeDevices, suggestedTitle, suggestedOutline. All text should be native ${langObj.englishName}. Never use placeholders.`,
+          prompt: `Given technical error code "${errorCode}" with Brand "${brand}" and Device "${device}", return only JSON with brand, device, category, keywords, alternativeBrands, alternativeDevices, suggestedTitle, suggestedOutline. All text should be native ${langObj.englishName}. Never use placeholders. The supplied Brand, Device, and Category are authoritative. Do not add other manufacturers to suggestedTitle. Outline items must not include manual numbering prefixes.`,
           temperature: 0.3, selectedModel: model, openRouterApiKey,
           siteUrl: settings.siteUrl || 'https://errorcodewiki.org', siteName: settings.siteName || 'ErrorCodeWiki',
           systemPrompt: 'You are an expert diagnostic assistant. Output strict JSON only.'
         });
         const clean = result.text.trim().replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
         const aiSuggestion = JSON.parse(clean);
+        if (Array.isArray(aiSuggestion.suggestedOutline)) aiSuggestion.suggestedOutline = aiSuggestion.suggestedOutline.map((item: unknown) => String(item ?? '').replace(/^\\s*\\d+[.)]\\s*/, '').trim());
         // Keep the user's selected context authoritative. AI providers sometimes ignore the
         // prompt and return Microsoft/Windows for unrelated codes, so never overwrite a
         // supplied brand, device, or category with model output.
