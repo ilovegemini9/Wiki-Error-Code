@@ -40,6 +40,39 @@ const MASTER_PRESET_CODES = [
   { code: '50.2', label: '50.2 (Fuser Error)', brand: 'HP', device: 'LaserJet Pro', cat: 'printers' },
   { code: 'E102', label: 'E102 (Startup Error)', brand: 'Microsoft Xbox', device: 'Xbox One S', cat: 'gaming' },
   { code: '403_FORBIDDEN', label: '403 Forbidden Access', brand: 'Apache / Nginx', device: 'Web Server', cat: 'software' },
+  { code: '0x80070002', label: '0x80070002 (File Not Found)', brand: 'Microsoft', device: 'Windows 11 PC', cat: 'windows' },
+  { code: '0x800f0922', label: '0x800f0922 (Update Failure)', brand: 'Microsoft', device: 'Windows Update', cat: 'windows' },
+  { code: 'INACCESSIBLE_BOOT_DEVICE', label: 'INACCESSIBLE_BOOT_DEVICE (BSOD)', brand: 'Microsoft', device: 'Windows PC', cat: 'windows' },
+  { code: 'WHEA_UNCORRECTABLE_ERROR', label: 'WHEA_UNCORRECTABLE_ERROR (BSOD)', brand: 'Microsoft', device: 'Windows PC', cat: 'windows' },
+  { code: '0xc0000005', label: '0xc0000005 (Access Violation)', brand: 'Microsoft', device: 'Windows Application', cat: 'windows' },
+  { code: 'P0301', label: 'P0301 (Cylinder 1 Misfire)', brand: 'Toyota', device: 'Engine ECU', cat: 'automotive' },
+  { code: 'P0171', label: 'P0171 (System Too Lean)', brand: 'Ford', device: 'Engine ECU', cat: 'automotive' },
+  { code: 'P0442', label: 'P0442 (EVAP Small Leak)', brand: 'Chevrolet', device: 'OBD-II Vehicle', cat: 'automotive' },
+  { code: 'P0016', label: 'P0016 (Crank/Cam Correlation)', brand: 'Hyundai', device: 'Engine ECU', cat: 'automotive' },
+  { code: 'P0420', label: 'P0420 (Catalyst Efficiency)', brand: 'Honda', device: 'OBD-II Vehicle', cat: 'automotive' },
+  { code: 'E15', label: 'E15 (Water in Base)', brand: 'Bosch', device: 'Dishwasher', cat: 'appliances' },
+  { code: 'OE', label: 'OE (Drain Error)', brand: 'LG', device: 'Washing Machine', cat: 'appliances' },
+  { code: 'F21', label: 'F21 (Drain Pump Error)', brand: 'Whirlpool', device: 'Front-Load Washer', cat: 'appliances' },
+  { code: '5E', label: '5E / SE (Drain Error)', brand: 'Samsung', device: 'Washing Machine', cat: 'appliances' },
+  { code: 'E4', label: 'E4 (Water Supply / Temperature)', brand: 'Samsung', device: 'Dishwasher', cat: 'appliances' },
+  { code: '0x97', label: '0x97 (Printhead Error)', brand: 'Epson', device: 'EcoTank Printer', cat: 'printers' },
+  { code: 'Epson 0x9A', label: '0x9A (Printer Error)', brand: 'Epson', device: 'WorkForce Printer', cat: 'printers' },
+  { code: 'HP 49.4C02', label: '49.4C02 (Firmware Error)', brand: 'HP', device: 'LaserJet Printer', cat: 'printers' },
+  { code: '0x6100004a', label: '0x6100004a (Ink System)', brand: 'HP', device: 'OfficeJet Printer', cat: 'printers' },
+  { code: 'NW-2-5', label: 'NW-2-5 (Network Error)', brand: 'Netflix', device: 'Smart TV / Streaming App', cat: 'software' },
+  { code: 'Roku Error 003', label: 'Roku Error 003 (Update)', brand: 'Roku', device: 'Streaming Device', cat: 'software' },
+  { code: 'E100', label: 'E100 (Console Startup)', brand: 'Microsoft Xbox', device: 'Xbox Console', cat: 'gaming' },
+  { code: 'SU-41333-4', label: 'SU-41333-4 (System Update)', brand: 'Sony PlayStation', device: 'PS4 Console', cat: 'gaming' },
+  { code: '0x87e50033', label: '0x87e50033 (Xbox Game Launch)', brand: 'Microsoft Xbox', device: 'Xbox Series X', cat: 'gaming' },
+  { code: 'ERR_NAME_NOT_RESOLVED', label: 'ERR_NAME_NOT_RESOLVED (DNS)', brand: 'Google Chrome', device: 'Chrome Browser', cat: 'software' },
+  { code: 'ERR_SSL_PROTOCOL_ERROR', label: 'ERR_SSL_PROTOCOL_ERROR (SSL)', brand: 'Google Chrome', device: 'Web Browser', cat: 'software' },
+  { code: 'NET::ERR_CERT_DATE_INVALID', label: 'NET::ERR_CERT_DATE_INVALID (Certificate)', brand: 'Google Chrome', device: 'Chrome Browser', cat: 'software' },
+  { code: '500_INTERNAL_SERVER_ERROR', label: '500 Internal Server Error', brand: 'Nginx / Apache', device: 'Web Server', cat: 'software' },
+  { code: '401_UNAUTHORIZED', label: '401 Unauthorized', brand: 'Apache / Nginx', device: 'Web API', cat: 'software' },
+  { code: '429_TOO_MANY_REQUESTS', label: '429 Too Many Requests', brand: 'Cloudflare', device: 'Web API', cat: 'software' },
+  { code: 'ECONNRESET', label: 'ECONNRESET (Connection Reset)', brand: 'Node.js', device: 'Server / Application', cat: 'software' },
+  { code: 'ENOTFOUND', label: 'ENOTFOUND (DNS Lookup)', brand: 'Node.js', device: 'Server / Application', cat: 'software' },
+  { code: 'SQLSTATE_23000', label: 'SQLSTATE 23000 (Integrity Constraint)', brand: 'MySQL', device: 'Database Server', cat: 'software' },
 ];
 
 export default function AiGeneratorPage() {
@@ -169,13 +202,13 @@ export default function AiGeneratorPage() {
     });
   }, [existingArticles, presetCategoryFilter]);
 
-  // Display top 8 uncreated presets (with cycle offset support)
+  // Display up to 16 uncreated presets (with cycle offset support)
   const visiblePresets = useMemo(() => {
     if (uncreatedPresets.length === 0) return [];
-    if (uncreatedPresets.length <= 8) return uncreatedPresets;
+    if (uncreatedPresets.length <= 16) return uncreatedPresets;
     
     const start = presetIndex % uncreatedPresets.length;
-    const end = start + 8;
+    const end = start + 16;
     if (end <= uncreatedPresets.length) {
       return uncreatedPresets.slice(start, end);
     }
@@ -183,7 +216,7 @@ export default function AiGeneratorPage() {
   }, [uncreatedPresets, presetIndex]);
 
   const handleShufflePresets = () => {
-    setPresetIndex(prev => prev + 8);
+    setPresetIndex(prev => prev + 16);
   };
 
   // Dynamic Brand Pills based on selected error code or AI suggestions
@@ -1062,7 +1095,7 @@ export default function AiGeneratorPage() {
               ))}
             </div>
 
-            {uncreatedPresets.length > 8 && (
+            {uncreatedPresets.length > 16 && (
               <button
                 type="button"
                 onClick={handleShufflePresets}
