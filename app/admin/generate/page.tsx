@@ -1447,57 +1447,7 @@ export default function AiGeneratorPage() {
             </div>
           </div>
 
-          {/* AI Optimizations & Smart Improvements Assistant */}
-          <div className="p-3 bg-purple-900 text-purple-100 rounded-xs space-y-2 text-xs">
-            <div className="font-bold flex items-center gap-2 text-purple-200 border-b border-purple-800 pb-1">
-              <Sparkles className="w-4 h-4 text-purple-400" />
-              <span>AI Live Article Enhancer & Optimizations:</span>
-            </div>
-            <div className="flex flex-wrap gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => {
-                  if (generatedArticle) {
-                    setGeneratedArticle({
-                      ...generatedArticle,
-                      seoScore: 98,
-                      faq: [
-                        ...(generatedArticle.faq || []),
-                        { question: `Can ${generatedArticle.errorCode} cause permanent data loss?`, answer: 'In most cases no, but restoring registry defaults or reinstalling drivers prevents system instability.' },
-                        { question: `Is ${generatedArticle.errorCode} covered under warranty?`, answer: 'If hardware fault is confirmed via diagnostic code, manufacturer repair or replacement is covered under standard warranty.' }
-                      ]
-                    });
-                  }
-                }}
-                className="px-3 py-1 bg-purple-800 hover:bg-purple-700 text-white font-semibold rounded-xs text-[11px] flex items-center gap-1 border border-purple-700"
-              >
-                + AI Add 2 FAQ Items (Boost SEO to 98/100)
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (generatedArticle) {
-                    setGeneratedArticle({
-                      ...generatedArticle,
-                      solutions: [
-                        ...(generatedArticle.solutions || []),
-                        {
-                          title: 'Solution 3: Clear System Cache & Flush DNS',
-                          description: 'Remove stale temporary configuration files and re-register system services.',
-                          steps: ['Open Command Prompt as Administrator', 'Type "ipconfig /flushdns" and press Enter', 'Restart service and re-verify error status']
-                        }
-                      ]
-                    });
-                  }
-                }}
-                className="px-3 py-1 bg-purple-800 hover:bg-purple-700 text-white font-semibold rounded-xs text-[11px] flex items-center gap-1 border border-purple-700"
-              >
-                + AI Add Extra Troubleshooting Solution
-              </button>
-            </div>
-          </div>
-
+          {/* Content preview starts here; avoid fabricated AI edits or artificial SEO scores. */}
           {/* Details & Live Preview Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-xs">
             
