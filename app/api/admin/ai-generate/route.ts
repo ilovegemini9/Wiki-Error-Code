@@ -3,6 +3,7 @@ import { isAuthenticatedAdmin } from '@/lib/auth';
 import { getLanguageByCode } from '@/lib/languages';
 import { executeWithCascadeFallback } from '@/lib/ai-service';
 import { getSupabaseSettings, saveSupabaseAiGenerationLog } from '@/lib/supabase-db';
+import { getOpenRouterApiKey } from '@/lib/provider-secrets';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
 
     const langObj = getLanguageByCode(language);
     const settings = await getSupabaseSettings();
-    const openRouterApiKey = process.env.OPENROUTER_API_KEY;
+    const openRouterApiKey = await getOpenRouterApiKey();
     const prompt = `You are an expert technical writer and SEO engineer specializing in electronics, software, hardware, vehicles, and IT infrastructure diagnostic manuals.
 Generate a complete, highly accurate, professional Wikipedia-style SEO article for the error code: "${errorCode}".
 
