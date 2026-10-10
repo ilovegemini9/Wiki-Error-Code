@@ -10,6 +10,7 @@ import {
   saveSupabaseSettings,
 } from './supabase-db';
 import { saveSupabaseBrand, saveSupabaseCategory } from './supabase-admin';
+import { getOpenRouterApiKey } from './provider-secrets';
 
 const MASTER_PRESETS = [
   { code: '0x80070005', brand: 'Microsoft', device: 'Windows 11 PC', cat: 'windows' },
@@ -96,7 +97,7 @@ export async function checkAndRunAutomationServer(): Promise<boolean> {
     const targetLangCode = languages[Math.floor(Math.random() * languages.length)] || 'en';
     const langObj = getLanguageByCode(targetLangCode);
     const modelToUse = settings.automationModel || settings.defaultAiModel || 'google/gemma-4-31b-it';
-    const openRouterApiKey = process.env.OPENROUTER_API_KEY;
+    const openRouterApiKey = await getOpenRouterApiKey();
     const { category, brand } = await resolveTaxonomy(preset);
 
     const prompt = `You are a world-class senior IT engineer, diagnostic systems architect, and technical SEO content strategist.
