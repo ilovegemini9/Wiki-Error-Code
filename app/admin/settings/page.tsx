@@ -24,6 +24,8 @@ export default function SettingsAdminPage() {
   const [saving, setSaving] = useState(false);
   const [hasOpenRouterApiKey, setHasOpenRouterApiKey] = useState<boolean | null>(null);
   const [testingConnection, setTestingConnection] = useState(false);
+  const [openRouterKeyInput, setOpenRouterKeyInput] = useState('');
+  const [savingProviderKey, setSavingProviderKey] = useState(false);
   const [connectionResult, setConnectionResult] = useState<{ success: boolean; text: string } | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -42,6 +44,34 @@ export default function SettingsAdminPage() {
   }, []);
 
   const update = <K extends keyof Settings>(key: K, value: Settings[K]) => setSettings((current) => ({ ...current, [key]: value }));
+
+  const saveProviderKey = async () => {
+    if (!openRouterKeyInput.trim()) {
+      setMessage({ type: 'error', text: 'Paste your OpenRouter API key first.' });
+      return;
+    }
+    setSavingProviderKey(true);
+    setMessage(null);
+    setConnectionResult(null);
+    try {
+      const res = await fetch('/api/admin/provider-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: openRouterKeyInput.trim() }),
+        cache: 'no-store',
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Could not validate and save the key.');
+      setOpenRouterKeyInput('');
+      setHasOpenRouterApiKey(true);
+      setMessage({ type: 'success', text: data.message || 'OpenRouter key saved securely.' });
+      await testOpenRouterConnection();
+    } catch (e) {
+      setMessage({ type: 'error', text: e instanceof Error ? e.message : 'Could not save the OpenRouter key.' });
+    } finally {
+      setSavingProviderKey(false);
+    }
+  };
 
   const testOpenRouterConnection = async () => {
     setTestingConnection(true);
@@ -100,17 +130,23 @@ export default function SettingsAdminPage() {
           <div className="flex flex-wrap items-center gap-2">
             <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 font-bold ${hasOpenRouterApiKey ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-900'}`}>
               <span className={`h-2 w-2 rounded-full ${hasOpenRouterApiKey ? 'bg-green-600' : 'bg-amber-600'}`} />
-              {hasOpenRouterApiKey === null ? 'Checking configuration…' : hasOpenRouterApiKey ? 'API key configured in server environment' : 'API key missing from server environment'}
+              {hasOpenRouterApiKey === null ? 'Checking configuration…' : hasOpenRouterApiKey ? 'API key configured securely' : 'API key not configured'}
             </span>
-            <a href="https://vercel.com/dashboard" target="_blank" rel="noreferrer" className="underline font-bold text-emerald-900">Open Vercel Dashboard</a>
           </div>
+          <label className="block space-y-1">
+            <span className="font-bold text-gray-900">OpenRouter API Key</span>
+            <input type="password" autoComplete="new-password" value={openRouterKeyInput} onChange={(e) => setOpenRouterKeyInput(e.target.value)} placeholder={hasOpenRouterApiKey ? 'Key saved — paste a new key to replace it' : 'Paste your sk-or-v1-… key here'} className="w-full border border-emerald-300 bg-white p-3 font-mono rounded-xs" />
+          </label>
           <div className="flex flex-wrap items-center gap-3">
-            <button type="button" onClick={testOpenRouterConnection} disabled={testingConnection || !hasOpenRouterApiKey} className="px-4 py-2 bg-emerald-900 hover:bg-emerald-800 text-white font-bold rounded-xs disabled:opacity-50">
-              {testingConnection ? 'Testing OpenRouter…' : 'Test API Connection'}
+            <button type="button" onClick={saveProviderKey} disabled={savingProviderKey || !openRouterKeyInput.trim()} className="px-4 py-2 bg-emerald-900 hover:bg-emerald-800 text-white font-bold rounded-xs disabled:opacity-50">
+              {savingProviderKey ? 'Validating & saving…' : 'Save & Test API Key'}
+            </button>
+            <button type="button" onClick={testOpenRouterConnection} disabled={testingConnection || !hasOpenRouterApiKey} className="px-4 py-2 border border-emerald-900 text-emerald-950 font-bold rounded-xs disabled:opacity-50">
+              {testingConnection ? 'Testing OpenRouter…' : 'Test Saved Key'}
             </button>
             {connectionResult && <span role="status" className={connectionResult.success ? 'text-green-800 font-bold' : 'text-red-700 font-bold'}>{connectionResult.text}</span>}
           </div>
-          <p className="text-gray-700 leading-relaxed">For security, the secret itself is never stored in Supabase, sent to this page, or saved in browser storage. Add <code className="font-mono">OPENROUTER_API_KEY</code> in Vercel → Project Settings → Environment Variables, then redeploy. The test sends a tiny request to OpenRouter and checks the provider response; it may be subject to provider rate limits. Admin authentication uses <code className="font-mono">ADMIN_USERNAME</code>, <code className="font-mono">ADMIN_PASSWORD</code>, and <code className="font-mono">ADMIN_SESSION_SECRET</code>.</p>
+          <p className="text-gray-700 leading-relaxed">The key is validated with OpenRouter before saving, encrypted on the server, and never returned to this page or stored in browser storage. Keep it private. This test checks provider access; generation can still be affected by model availability, rate limits, and account credits. For server-side encryption, <code className="font-mono">ADMIN_SESSION_SECRET</code> must be configured.</p>
         </section>
 
         <section className="p-4 bg-white border border-gray-300 rounded-xs space-y-4">
