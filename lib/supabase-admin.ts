@@ -46,7 +46,7 @@ export async function getSupabaseDashboardStats() {
     client().from('brands').select('id', { count: 'exact', head: true }),
     client().from('analytics_events').select('id', { count: 'exact', head: true }).eq('event_name', 'page_view').gte('created_at', since + 'T00:00:00.000Z').lte('created_at', today + 'T23:59:59.999Z'),
     client().from('articles').select('id,slug,title,status,updated_at').order('updated_at', { ascending: false }).limit(10),
-    client().from('ai_generation_logs').select('id,model,task_type,created_at,success').order('created_at', { ascending: false }).limit(10),
+    client().from('ai_generation_logs').select('id,model,error_code,created_at,status').order('created_at', { ascending: false }).limit(10),
     client().from('ai_generation_logs').select('id', { count: 'exact', head: true }).gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
   ]);
   const results = [articleCountRes, publishedCountRes, draftCountRes, categoryCountRes, calculatorCountRes, viewsRes, recentArticlesRes, recentLogsRes, todayAiCountRes];
@@ -62,6 +62,6 @@ export async function getSupabaseDashboardStats() {
     totalViews,
     todayAiGenerations: todayAiCountRes.count || 0,
     recentArticles: (recentArticlesRes.data || []).map((a: any) => ({ id: a.id, slug: a.slug || a.id, title: a.title, status: a.status })),
-    recentAiLogs: (recentLogsRes.data || []).map((l: any) => ({ id: l.id, taskType: l.task_type || 'AI task', model: l.model || 'unknown', createdAt: l.created_at, status: l.success ? 'completed' : 'failed' })),
+    recentAiLogs: (recentLogsRes.data || []).map((l: any) => ({ id: l.id, taskType: l.error_code || 'AI task', model: l.model || 'unknown', createdAt: l.created_at, status: l.status === 'completed' ? 'completed' : 'failed' })),
   };
 }
