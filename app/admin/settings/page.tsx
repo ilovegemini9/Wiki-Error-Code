@@ -124,7 +124,7 @@ export default function SettingsAdminPage() {
 
         <section className="p-4 bg-gray-50 border border-gray-300 rounded-xs space-y-4">
           <h2 className="font-serif font-bold text-sm flex items-center gap-2"><Sparkles className="w-4 h-4" />AI Strategy</h2>
-          <label className="space-y-1 block"><span className="font-bold">Default AI Model Strategy</span><select value={settings.defaultAiModel || 'auto_cascade'} onChange={(e) => update('defaultAiModel', e.target.value)} className="w-full border border-gray-300 p-2 font-mono rounded-xs"><option value="auto_cascade">Cascade Auto</option><option value="nvidia/nemotron-3-ultra:free">NVIDIA Nemotron</option><option value="poolside/laguna-s-2.1:free">Poolside Laguna</option><option value="nvidia/nemotron-3.5-lightning:free">NVIDIA Nemotron Lightning</option><option value="gemini-3.6-flash">Gemini Fallback</option></select></label>
+          <label className="space-y-1 block"><span className="font-bold">Default AI Model Strategy</span><select value={settings.defaultAiModel || 'auto_cascade'} onChange={(e) => update('defaultAiModel', e.target.value)} className="w-full border border-gray-300 p-2 font-mono rounded-xs"><option value="auto_cascade">Cascade Auto</option><option value="nvidia/nemotron-3-ultra-550b-a55b:free">NVIDIA Nemotron</option><option value="poolside/laguna-s-2.1:free">Poolside Laguna</option><option value="nvidia/nemotron-3.5-lightning:free">NVIDIA Nemotron Lightning</option><option value="gemini-3.6-flash">Gemini Fallback</option></select></label>
           <p className="text-[10px] text-gray-500">Model availability and provider billing are controlled by the configured server-side provider credentials.</p>
         </section>
 
