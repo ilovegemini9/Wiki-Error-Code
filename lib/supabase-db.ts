@@ -24,10 +24,10 @@ function rowToArticle(row: any): Article {
     canonicalUrl: row.canonical_url || undefined,
     categoryId: row.category_id || '',
     brandId: row.brand_id || '',
-    deviceType: '',
-    language: 'en',
-    keywords: [],
-    tags: [],
+    deviceType: row.device_type || '',
+    language: row.language || 'en',
+    keywords: Array.isArray(row.keywords) ? row.keywords : [],
+    tags: Array.isArray(row.tags) ? row.tags : [],
     featuredImage: row.featured_image || undefined,
     status: row.status === 'draft' ? 'draft' : 'published',
     readingTime: `${row.reading_time || '1'} min read`,
@@ -46,7 +46,7 @@ function rowToCategory(row: any): Category {
 }
 
 function rowToCalculator(row: any): Brand {
-  return { id: row.id, name: row.name, slug: row.slug, categoryId: row.category_id || '', deviceTypes: [], description: row.description || '' };
+  return { id: row.id, name: row.name, slug: row.slug, categoryId: row.category_id || '', deviceTypes: Array.isArray(row.device_types) ? row.device_types : [], description: row.description || '' };
 }
 
 function rowToSettings(row: any): Settings {
