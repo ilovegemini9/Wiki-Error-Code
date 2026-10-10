@@ -137,7 +137,7 @@ export default function AiGeneratorPage() {
     const fetchInitialData = async () => {
       try {
         const [artRes, catRes, brandRes, setRes] = await Promise.all([
-          fetch('/api/admin/articles'),
+          fetch('/api/admin/articles?status=all&limit=500&offset=0'),
           fetch('/api/admin/categories'),
           fetch('/api/admin/brands'),
           fetch('/api/admin/settings')
@@ -485,7 +485,10 @@ export default function AiGeneratorPage() {
       if (res.ok) {
         if (data.article) {
           setExistingArticles(prev => {
-            const next = [...prev, data.article];
+            const savedNormalizedCode = String(data.article.errorCode || savedCode).toLowerCase().replace(/[^a-z0-9]/g, '');
+            const next = prev.some(article => article.errorCode.toLowerCase().replace(/[^a-z0-9]/g, '') === savedNormalizedCode)
+              ? prev.map(article => article.errorCode.toLowerCase().replace(/[^a-z0-9]/g, '') === savedNormalizedCode ? data.article : article)
+              : [...prev, data.article];
             try {
               localStorage.setItem('errorcodewiki_articles_backup_v1', JSON.stringify(next));
             } catch {}
