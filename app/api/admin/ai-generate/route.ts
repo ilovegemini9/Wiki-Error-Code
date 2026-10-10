@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     errorCode = body.errorCode || 'Unknown';
     brand = body.brand || 'Generic';
     device = body.device || 'General Device';
-    model = body.model || 'nvidia/nemotron-3-ultra:free';
+    model = body.model || 'nvidia/nemotron-3-ultra-550b-a55b:free';
     const { category = 'Software', language = 'en', keywords = '', articleLength = 'Medium (800 words)', temperature = 0.7 } = body;
     if (!String(errorCode).trim()) return NextResponse.json({ error: 'Error code is required' }, { status: 400 });
 
