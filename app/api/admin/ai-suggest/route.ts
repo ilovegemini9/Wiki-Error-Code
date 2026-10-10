@@ -57,13 +57,29 @@ export async function POST(req: NextRequest) {
       categories = [...categories, targetCat];
     }
 
-    const targetBrandName = String(suggestion.brand || brand || 'Generic');
-    const brandSlug = targetBrandName.toLowerCase().trim().replace(/[^a-z0-9_-]/g, '-');
+    // Normalize AI brand suggestions into individual brand records (never save "Brand A / Brand B" as one brand).
+    const splitBrandNames = (value: unknown): string[] => {
+      const values = Array.isArray(value) ? value : [value];
+      return values.flatMap(item => String(item || '').split(/\\s*(?:\\/|,|\\||;|\\s+&\\s+|\\s+or\\s+)\\s*/i))
+        .map(name => name.trim().replace(/^['"]|['"]$/g, ''))
+        .filter(name => name.length > 1 && name.toLowerCase() !== 'generic');
+    };
+    const primaryBrandCandidates = splitBrandNames(suggestion.brand || brand || 'Generic');
+    const targetBrandName = primaryBrandCandidates[0] || String(brand || 'Generic');
+    const suggestedBrandNames = Array.from(new Set([...primaryBrandCandidates, ...splitBrandNames(suggestion.alternativeBrands || suggestion.brands)]));
     let brands = await getSupabaseBrands();
-    let targetBrand = brands.find(b => b.slug === brandSlug || b.name.toLowerCase() === targetBrandName.toLowerCase());
-    if (!targetBrand && targetBrandName !== 'Generic') {
-      targetBrand = await saveSupabaseBrand({ name: targetBrandName, slug: brandSlug, categoryId: targetCat.id, deviceTypes: [suggestion.device || 'General Device'], description: `${targetBrandName} diagnostic solutions` });
-      brands = [...brands, targetBrand];
+    for (const brandName of suggestedBrandNames) {
+      const brandSlug = brandName.toLowerCase().trim().replace(/[^a-z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+      const existingBrand = brands.find(b => b.slug === brandSlug || b.name.toLowerCase() === brandName.toLowerCase());
+      if (!existingBrand && brandSlug) {
+        try {
+          const savedBrand = await saveSupabaseBrand({ name: brandName, slug: brandSlug, categoryId: targetCat.id, deviceTypes: [suggestion.device || device || 'General Device'], description: brandName + ' diagnostic solutions' });
+          brands = [...brands, savedBrand];
+        } catch (brandSaveError) {
+          // A concurrent suggestion may have created this brand already; continue with other suggestions.
+          console.error('Could not auto-save suggested brand:', brandName, brandSaveError);
+        }
+      }
     }
 
     const { articles } = await getSupabaseArticles({ status: 'all', limit: 500 });
@@ -72,7 +88,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      suggestions: { brand: targetBrandName, device: suggestion.device || device || 'General Hardware', category: catSlug, keywords: suggestion.keywords || [`${errorCode} fix`, `${errorCode} error`], brands: suggestion.alternativeBrands || suggestion.brands, devices: suggestion.alternativeDevices || suggestion.devices, suggestedTitle: suggestion.suggestedTitle, suggestedOutline: suggestion.suggestedOutline },
+      suggestions: { brand: targetBrandName, device: suggestion.device || device || 'General Hardware', category: catSlug, keywords: suggestion.keywords || [`${errorCode} fix`, `${errorCode} error`], brands: Array.from(new Set([...splitBrandNames(suggestion.alternativeBrands || suggestion.brands), ...suggestedBrandNames])), devices: suggestion.alternativeDevices || suggestion.devices, suggestedTitle: suggestion.suggestedTitle, suggestedOutline: suggestion.suggestedOutline },
       existingArticle: existingArticle ? { id: existingArticle.id, title: existingArticle.title, slug: existingArticle.slug, status: existingArticle.status } : null,
       allCategories: categories,
       allBrands: brands,
