@@ -190,11 +190,12 @@ export default function AiGeneratorPage() {
 
   // Filter out any error codes that already exist in database
   const uncreatedPresets = useMemo(() => {
+    const seenCodes = new Set<string>();
     return MASTER_PRESET_CODES.filter(preset => {
-      if (presetCategoryFilter !== 'all' && preset.cat !== presetCategoryFilter) {
-        return false;
-      }
+      if (presetCategoryFilter !== 'all' && preset.cat !== presetCategoryFilter) return false;
       const cleanPresetCode = preset.code.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (!cleanPresetCode || seenCodes.has(cleanPresetCode)) return false;
+      seenCodes.add(cleanPresetCode);
       return !existingArticles.some(art => {
         const cleanArtCode = art.errorCode.toLowerCase().replace(/[^a-z0-9]/g, '');
         return cleanArtCode === cleanPresetCode;
