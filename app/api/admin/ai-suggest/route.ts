@@ -45,7 +45,17 @@ export async function POST(req: NextRequest) {
           systemPrompt: 'You are an expert diagnostic assistant. Output strict JSON only.'
         });
         const clean = result.text.trim().replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
-        suggestion = { ...suggestion, ...JSON.parse(clean) };
+        const aiSuggestion = JSON.parse(clean);
+        // Keep the user's selected context authoritative. AI providers sometimes ignore the
+        // prompt and return Microsoft/Windows for unrelated codes, so never overwrite a
+        // supplied brand, device, or category with model output.
+        suggestion = {
+          ...suggestion,
+          ...aiSuggestion,
+          brand: brand.trim() || aiSuggestion.brand || suggestion.brand,
+          device: device.trim() || aiSuggestion.device || suggestion.device,
+          category: category.trim() || aiSuggestion.category || suggestion.category,
+        };
       } catch (e) { console.error('AI suggestion fallback:', e); }
     }
 
