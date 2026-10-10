@@ -19,12 +19,16 @@ export async function GET(req: NextRequest) {
     const q = searchParams.get('q') || undefined;
     const category = searchParams.get('category') || undefined;
     const brand = searchParams.get('brand') || undefined;
+    const limit = Number(searchParams.get('limit') || 100);
+    const offset = Number(searchParams.get('offset') || 0);
 
     const result = await getSupabaseArticles({
       status,
       search: q,
       categorySlug: category,
       brandSlug: brand,
+      limit: Number.isFinite(limit) ? limit : 100,
+      offset: Number.isFinite(offset) ? offset : 0,
     });
 
     return NextResponse.json(result);
