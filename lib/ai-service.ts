@@ -153,8 +153,20 @@ export async function executeWithCascadeFallback(options: AiGenerationOptions): 
           const data = await res.json();
           const content = data.choices?.[0]?.message?.content?.trim();
           if (content && content.length > 20) {
-            cascadeLogs.push(`✓ Model #${i + 1} (${currentModel}) succeeded!`);
-            return { text: content, usedModel: currentModel, cascadeLogs, success: true };
+            // All current callers expect JSON. Validate it here so malformed or truncated
+            // responses trigger the next model instead of failing later in the route.
+            const normalizedContent = content
+              .replace(/^\`\`\`json\\s*/i, '')
+              .replace(/^\`\`\`\\s*/, '')
+              .replace(/\\s*\`\`\`$/, '');
+            try {
+              JSON.parse(normalizedContent);
+              cascadeLogs.push(`✓ Model #${i + 1} (${currentModel}) returned valid JSON!`);
+              return { text: content, usedModel: currentModel, cascadeLogs, success: true };
+            } catch {
+              cascadeLogs.push(`⚠️ Model ${currentModel} returned malformed/truncated JSON. Cascading to next model...`);
+              continue;
+            }
           }
           cascadeLogs.push(`⚠️ Model ${currentModel} returned empty or invalid response. Cascading to next model...`);
           continue;
