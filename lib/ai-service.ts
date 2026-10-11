@@ -12,16 +12,21 @@ export interface TopModelDefinition {
   isFree: boolean;
 }
 
+/**
+ * Keep this list limited to general-purpose text models that can handle the
+ * JSON article-generation contract. The OpenRouter free router is included
+ * first so the cascade is not tied to a stale provider/model combination.
+ */
 export const TOP_FREE_MODELS: TopModelDefinition[] = [
   {
-    id: 'google/gemma-4-31b-it:free',
-    name: 'Google: Gemma 4 31B (free)',
-    provider: 'Google',
-    badge: '★ Primary fallback · Structured JSON',
-    context: '262K context',
+    id: 'openrouter/free',
+    name: 'OpenRouter: Free Router',
+    provider: 'OpenRouter',
+    badge: '★ Primary fallback · Auto-routes free models',
+    context: '200K context',
     tokens: 'Free',
     rank: 1,
-    description: 'Multilingual technical writing, code explanations and reliable JSON output.',
+    description: 'Automatically routes to an available free model with support for the request capabilities.',
     isFree: true
   },
   {
@@ -32,7 +37,29 @@ export const TOP_FREE_MODELS: TopModelDefinition[] = [
     context: '1M context',
     tokens: 'Free',
     rank: 2,
-    description: 'Strong reasoning, coding and long-context technical generation.',
+    description: 'Strong reasoning and long-context technical generation.',
+    isFree: true
+  },
+  {
+    id: 'poolside/laguna-s-2.1:free',
+    name: 'Poolside: Laguna S 2.1 (free)',
+    provider: 'Poolside',
+    badge: 'Technical fallback',
+    context: '262K context',
+    tokens: 'Free',
+    rank: 3,
+    description: 'Technical writing and coding-oriented free fallback.',
+    isFree: true
+  },
+  {
+    id: 'nvidia/nemotron-3.5-lightning:free',
+    name: 'NVIDIA: Nemotron 3.5 Lightning (free)',
+    provider: 'NVIDIA',
+    badge: 'Fast fallback',
+    context: '1M context',
+    tokens: 'Free',
+    rank: 4,
+    description: 'Fast general-purpose free model for high-throughput generation.',
     isFree: true
   },
   {
@@ -42,41 +69,30 @@ export const TOP_FREE_MODELS: TopModelDefinition[] = [
     badge: 'Multilingual fallback',
     context: '256K context',
     tokens: 'Free',
-    rank: 3,
+    rank: 5,
     description: 'Multilingual instruction following and structured-output support.',
     isFree: true
   },
   {
-    id: 'cohere/north-mini-code:free',
-    name: 'Cohere: North Mini Code (free)',
-    provider: 'Cohere',
-    badge: 'Code fallback',
-    context: '256K context',
-    tokens: 'Free',
-    rank: 4,
-    description: 'Specialized coding model for code examples and software troubleshooting.',
-    isFree: true
-  },
-  {
-    id: 'thinkingmachines/inkling-small:free',
-    name: 'Thinking Machines: Inkling Small (free)',
-    provider: 'Thinking Machines',
-    badge: 'Experimental fallback',
-    context: '1M context',
-    tokens: 'Free',
-    rank: 5,
-    description: 'Reasoning, coding and multilingual generation. Free endpoint may require an agentic harness.',
-    isFree: true
-  },
-  {
-    id: 'thinkingmachines/inkling:free',
-    name: 'Thinking Machines: Inkling (free)',
-    provider: 'Thinking Machines',
-    badge: 'Experimental fallback',
-    context: '1M context',
+    id: 'google/gemma-4-31b-it:free',
+    name: 'Google: Gemma 4 31B (free)',
+    provider: 'Google',
+    badge: 'Multilingual fallback',
+    context: '262K context',
     tokens: 'Free',
     rank: 6,
-    description: 'Large reasoning and multilingual model. Free endpoint may require an agentic harness.',
+    description: 'Multilingual technical writing and structured JSON generation.',
+    isFree: true
+  },
+  {
+    id: 'openai/gpt-oss-120b:free',
+    name: 'OpenAI: gpt-oss-120b (free)',
+    provider: 'OpenAI',
+    badge: 'Reasoning fallback',
+    context: '131K context',
+    tokens: 'Free',
+    rank: 7,
+    description: 'General-purpose reasoning model with structured-output support.',
     isFree: true
   }
 ];
@@ -101,9 +117,8 @@ export interface AiGenerationResult {
 }
 
 /**
- * Four-model OpenRouter cascade for AI article generation.
+ * Resilient OpenRouter cascade with a Gemini server fallback.
  * Provider/model failures are isolated so the next model can be attempted.
- * The final Gemini fallback is used only when GEMINI_API_KEY is configured.
  */
 export async function executeWithCascadeFallback(options: AiGenerationOptions): Promise<AiGenerationResult> {
   const {
@@ -125,7 +140,7 @@ export async function executeWithCascadeFallback(options: AiGenerationOptions): 
     for (let i = 0; i < modelQueue.length; i++) {
       const currentModel = modelQueue[i];
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 45000);
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       try {
         cascadeLogs.push(`Attempting Model #${i + 1} (${currentModel})...`);
@@ -144,7 +159,8 @@ export async function executeWithCascadeFallback(options: AiGenerationOptions): 
               { role: 'user', content: prompt }
             ],
             temperature: typeof temperature === 'number' ? temperature : 0.7,
-            max_tokens: 4096
+            max_tokens: 4096,
+            response_format: { type: 'json_object' }
           }),
           signal: controller.signal
         });
@@ -153,8 +169,6 @@ export async function executeWithCascadeFallback(options: AiGenerationOptions): 
           const data = await res.json();
           const content = data.choices?.[0]?.message?.content?.trim();
           if (content && content.length > 20) {
-            // All current callers expect JSON. Validate it here so malformed or truncated
-            // responses trigger the next model instead of failing later in the route.
             const normalizedContent = content
               .replace(/^```json\s*/i, '')
               .replace(/^```\s*/, '')
@@ -174,17 +188,19 @@ export async function executeWithCascadeFallback(options: AiGenerationOptions): 
 
         const errText = await res.text();
         if (res.status === 401 || res.status === 403) {
-          // Authentication/authorization failures affect the whole OpenRouter account,
-          // not an individual model. Stop retrying models and try the configured Gemini fallback.
-          cascadeLogs.push(`❌ OpenRouter authentication failed (${res.status}). Check OPENROUTER_API_KEY in the server environment; skipping the remaining OpenRouter models.`);
+          cascadeLogs.push(`❌ OpenRouter authentication/authorization failed (${res.status}). Skipping remaining OpenRouter models.`);
           cascadeLogs.push(`Provider detail: ${errText.slice(0, 180)}`);
           break;
-        } else if (res.status === 429) {
-          cascadeLogs.push(`⚠️ Model ${currentModel} rate-limited (429). Skipping immediately...`);
+        }
+        if (res.status === 429) {
+          const retryAfter = Number(res.headers.get('retry-after') || 0);
+          const waitMs = Math.min(Math.max(retryAfter * 1000, 1500), 5000);
+          cascadeLogs.push(`⚠️ Model ${currentModel} rate-limited (429). Waiting ${Math.round(waitMs / 1000)}s, then cascading...`);
+          await new Promise((resolve) => setTimeout(resolve, waitMs));
         } else if (res.status === 402) {
-          cascadeLogs.push(`⚠️ Model ${currentModel} requires credits (402). Skipping immediately...`);
+          cascadeLogs.push(`⚠️ Model ${currentModel} requires credits (402). Cascading to next model...`);
         } else if (res.status === 400) {
-          cascadeLogs.push(`⚠️ Model ${currentModel} rejected the request (400). Skipping immediately...`);
+          cascadeLogs.push(`⚠️ Model ${currentModel} rejected the request (400). Cascading to next model...`);
         } else {
           cascadeLogs.push(`⚠️ Model ${currentModel} failed (${res.status}). Cascading to next model...`);
         }
