@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isAuthenticatedAdmin } from '@/lib/auth';
 import { checkAndRunAutomationServer } from '@/lib/automation-runner';
 import { getSupabaseSettings, saveSupabaseSettings } from '@/lib/supabase-db';
-import { getOpenRouterApiKey, hasOpenRouterApiKey } from '@/lib/provider-secrets';
+import { getOpenRouterApiKeySource, hasOpenRouterApiKey } from '@/lib/provider-secrets';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,11 +20,7 @@ export async function GET() {
       providerStatus: {
         hasOpenRouterApiKey: await hasOpenRouterApiKey(),
         // Never expose secret material. This helps admins confirm which configured source is active.
-        openRouterKeySource: await getOpenRouterApiKey().then((key) => {
-          if (!key) return 'none';
-          // The database key is authoritative when present; env is fallback only.
-          return 'configured';
-        }),
+        openRouterKeySource: await getOpenRouterApiKeySource(),
       },
     });
   } catch (e) {
