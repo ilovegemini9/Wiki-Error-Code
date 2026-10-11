@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAuthenticatedAdmin } from '@/lib/auth';
-import { checkAndRunAutomationServer } from '@/lib/automation-runner';
 import { getSupabaseSettings, saveSupabaseSettings } from '@/lib/supabase-db';
 import { getOpenRouterApiKeySource, hasOpenRouterApiKey } from '@/lib/provider-secrets';
 
@@ -12,7 +11,6 @@ export async function GET() {
   }
 
   try {
-    checkAndRunAutomationServer().catch(() => {});
     const settings = await getSupabaseSettings();
     // Never return the secret itself; expose only a boolean status to the authenticated admin.
     return NextResponse.json({
