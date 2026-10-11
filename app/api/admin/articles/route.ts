@@ -94,10 +94,21 @@ export async function POST(req: NextRequest) {
       brandId: brand.id,
     });
     return NextResponse.json({ success: true, article });
-  } catch (e) {
-    const message = e instanceof Error ? e.message : 'Failed to save article';
-    console.error('[ADMIN SAVE ARTICLE]', message);
-    return NextResponse.json({ error: message || 'Failed to save article' }, { status: 500 });
+  } catch (e: unknown) {
+    // Supabase/PostgREST errors are often plain objects, not Error instances.
+    // Preserve their message/details so automation logs reveal the real cause.
+    const err = e as { message?: unknown; details?: unknown; hint?: unknown; code?: unknown };
+    const parts = [
+      typeof err?.message === 'string' ? err.message : '',
+      typeof err?.details === 'string' ? err.details : '',
+      typeof err?.hint === 'string' ? err.hint : '',
+      typeof err?.code === 'string' ? `code: ${err.code}` : '',
+    ].filter(Boolean);
+    const message = parts.join(' | ') || (e instanceof Error ? e.message : (() => {
+      try { return JSON.stringify(e); } catch { return 'Unknown article save error'; }
+    })());
+    console.error('[ADMIN SAVE ARTICLE]', message, e);
+    return NextResponse.json({ error: message || 'Unknown article save error' }, { status: 500 });
   }
 }
 
