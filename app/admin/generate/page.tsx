@@ -24,7 +24,7 @@ const MASTER_PRESET_CODES = [
   { code: '0x8027025a', label: '0x8027025a (Xbox Start)', brand: 'Microsoft Xbox', device: 'Xbox Series X', cat: 'gaming' },
   { code: 'F06', label: 'F06 (Motor Tachometer)', brand: 'Whirlpool', device: 'Front-Load Washer', cat: 'appliances' },
   { code: '502_BAD_GATEWAY', label: '502 Bad Gateway', brand: 'Nginx / Cloudflare', device: 'Web Server', cat: 'software' },
-  { code: 'P0455', label: 'P0455 (EVAP Large Leak)', brand: 'Nissan / Ford', device: 'EVAP System', cat: 'automotive' },
+  { code: 'P0455', label: 'P0455 (EVAP Large Leak)', brand: 'Nissan', device: 'EVAP System', cat: 'automotive' },
   { code: 'E15', label: 'E15 (Base Water Leak)', brand: 'Bosch', device: 'Dishwasher', cat: 'appliances' },
   { code: '2168-0002', label: '2168-0002 (System Crash)', brand: 'Nintendo Switch', device: 'Switch Console', cat: 'gaming' },
   { code: '4E', label: '4E (Water Supply Error)', brand: 'Samsung', device: 'Washing Machine', cat: 'appliances' },
