@@ -26,11 +26,9 @@ function decrypt(value: string) {
 }
 
 export async function getOpenRouterApiKey(): Promise<string | undefined> {
-  // Prefer the explicitly configured Vercel environment key. This lets a newly
-  // rotated key/account take effect even if an older encrypted key remains in Supabase.
-  const environmentKey = process.env.OPENROUTER_API_KEY?.trim();
-  if (environmentKey) return environmentKey;
-
+  // A key explicitly saved and validated in Admin Settings is authoritative.
+  // Use the Vercel environment variable only when no database key is stored,
+  // so an old environment secret cannot silently override the newly saved key.
   if (supabaseAdmin) {
     const { data, error } = await (supabaseAdmin as any)
       .from('global_settings')
@@ -41,7 +39,7 @@ export async function getOpenRouterApiKey(): Promise<string | undefined> {
     const encrypted = data?.[COLUMN];
     if (typeof encrypted === 'string' && encrypted) return decrypt(encrypted).trim();
   }
-  return undefined;
+  return process.env.OPENROUTER_API_KEY?.trim() || undefined;
 }
 
 export async function saveOpenRouterApiKey(apiKey: string): Promise<void> {
