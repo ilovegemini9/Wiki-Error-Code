@@ -135,7 +135,7 @@ export default function SettingsAdminPage() {
           </div>
           <label className="block space-y-1">
             <span className="font-bold text-gray-900">OpenRouter API Key</span>
-            <input type="password" autoComplete="new-password" value={openRouterKeyInput} onChange={(e) => setOpenRouterKeyInput(e.target.value)} placeholder={hasOpenRouterApiKey ? 'Key saved — paste a new key to replace it' : 'Paste your sk-or-v1-… key here'} className="w-full border border-emerald-300 bg-white p-3 font-mono rounded-xs" />
+            <input type="password" autoComplete="new-password" value={openRouterKeyInput} onChange={(e) => setOpenRouterKeyInput(e.target.value)} placeholder={hasOpenRouterApiKey ? '•••••••••••• (saved — paste a new key to replace it)' : 'Paste your sk-or-v1-… key here'} className="w-full border border-emerald-300 bg-white p-3 font-mono rounded-xs" />
           </label>
           <div className="flex flex-wrap items-center gap-3">
             <button type="button" onClick={saveProviderKey} disabled={savingProviderKey || !openRouterKeyInput.trim()} className="px-4 py-2 bg-emerald-900 hover:bg-emerald-800 text-white font-bold rounded-xs disabled:opacity-50">
