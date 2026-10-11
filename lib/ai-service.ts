@@ -187,10 +187,18 @@ export async function executeWithCascadeFallback(options: AiGenerationOptions): 
         }
 
         const errText = await res.text();
-        if (res.status === 401 || res.status === 403) {
-          cascadeLogs.push(`❌ OpenRouter authentication/authorization failed (${res.status}). Skipping remaining OpenRouter models.`);
+        if (res.status === 401) {
+          cascadeLogs.push('❌ OpenRouter authentication failed (401). Check OPENROUTER_API_KEY in the server environment; skipping remaining OpenRouter models.');
           cascadeLogs.push(`Provider detail: ${errText.slice(0, 180)}`);
           break;
+        }
+        if (res.status === 403) {
+          // OpenRouter can return 403 when a specific model is restricted (for example,
+          // agentic-harness-only models). Treat this as a model failure, not a global key
+          // failure, so healthy models later in the cascade still get a chance.
+          cascadeLogs.push(`⚠️ Model ${currentModel} is forbidden/unavailable (403). Skipping this model and continuing the cascade.`);
+          cascadeLogs.push(`Provider detail: ${errText.slice(0, 180)}`);
+          continue;
         }
         if (res.status === 429) {
           const retryAfter = Number(res.headers.get('retry-after') || 0);
