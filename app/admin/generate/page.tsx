@@ -816,6 +816,7 @@ export default function AiGeneratorPage() {
               <div>
                 <h2 className="font-serif font-bold text-base text-amber-300 flex items-center gap-2">
                   <span>Génération & Publication 100% Automatique</span>
+                  <span className="ml-2 text-[10px] font-mono text-purple-200">Gemini fallback: {hasGeminiApiKey === null ? 'checking…' : hasGeminiApiKey ? 'configured' : 'NOT CONFIGURED (set GEMINI_API_KEY in Vercel Environment Variables)'}</span>
                   {isAutomationActive ? (
                     <span className="text-[10px] font-mono bg-emerald-500 text-black px-2 py-0.5 rounded-xs font-extrabold uppercase animate-pulse flex items-center gap-1">
                       <Radio className="w-3 h-3" /> En Exécution (Running)
