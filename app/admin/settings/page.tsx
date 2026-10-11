@@ -189,7 +189,7 @@ export default function SettingsAdminPage() {
           <h2 className="font-serif font-bold text-sm">Automation</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <label className="space-y-1 flex flex-col"><span className="font-bold">Active</span><select value={settings.automationActive ? 'true' : 'false'} onChange={(e) => update('automationActive', e.target.value === 'true')} className="border border-gray-300 p-2 rounded-xs"><option value="false">Disabled</option><option value="true">Enabled</option></select></label>
-            <label className="space-y-1"><span className="font-bold">Délai de Génération (Interval, minutes)</span><input type="number" min={1} min={30} step={30} value={settings.automationIntervalMinutes ?? 30} onChange={(e) => update('automationIntervalMinutes', Math.max(30, Number(e.target.value)))} className="w-full border border-gray-300 p-2 rounded-xs" /></label>
+            <label className="space-y-1"><span className="font-bold">Délai de Génération (Interval, minutes)</span><input type="number" min={30} step={30} value={settings.automationIntervalMinutes ?? 30} onChange={(e) => update('automationIntervalMinutes', Math.max(30, Number(e.target.value)))} className="w-full border border-gray-300 p-2 rounded-xs" /></label>
             <label className="space-y-1"><span className="font-bold">Publish Status</span><select value={settings.automationPublishStatus || 'published'} onChange={(e) => update('automationPublishStatus', e.target.value as 'published' | 'draft')} className="w-full border border-gray-300 p-2 rounded-xs"><option value="published">Published</option><option value="draft">Draft</option></select></label>
           </div>
         </section>
