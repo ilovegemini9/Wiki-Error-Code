@@ -1,5 +1,3 @@
-import { GoogleGenAI } from '@google/genai';
-
 export interface TopModelDefinition {
   id: string;
   name: string;
@@ -217,36 +215,7 @@ export async function executeWithCascadeFallback(options: AiGenerationOptions): 
     cascadeLogs.push('ℹ️ No OpenRouter API Key configured in Settings. Skipping OpenRouter cascade.');
   }
 
-  const geminiApiKey = process.env.GEMINI_API_KEY?.trim();
-  if (geminiApiKey) {
-    try {
-      cascadeLogs.push('Activating Gemini server fallback...');
-      const ai = new GoogleGenAI({ apiKey: geminiApiKey });
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          temperature: typeof temperature === 'number' ? temperature : 0.7
-        }
-      });
-      const text = response.text?.trim() || '';
-      if (text) {
-        const normalizedText = text.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
-        try {
-          JSON.parse(normalizedText);
-          cascadeLogs.push('✓ Gemini fallback returned valid JSON!');
-          return { text: normalizedText, usedModel: 'gemini-2.5-flash', cascadeLogs, success: true };
-        } catch {
-          cascadeLogs.push('❌ Gemini fallback returned malformed JSON.');
-        }
-      }
-    } catch (geminiErr: any) {
-      cascadeLogs.push(`❌ Gemini fallback error: ${geminiErr?.message || 'Error'}`);
-    }
-  } else {
-    cascadeLogs.push('ℹ️ Gemini fallback unavailable: GEMINI_API_KEY is not configured.');
-  }
+
 
   throw new Error(`All AI models in the cascade failed or were suspended.\nLogs: ${cascadeLogs.join(' -> ')}`);
 }
