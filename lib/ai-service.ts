@@ -121,7 +121,7 @@ export async function executeWithCascadeFallback(options: AiGenerationOptions): 
   } = options;
 
   const cascadeLogs: string[] = [];
-  const modelQueue = selectedModel && selectedModel !== 'auto_cascade' && selectedModel !== 'gemini-3.6-flash'
+  const modelQueue = selectedModel && CASCADE_MODEL_IDS.includes(selectedModel)
     ? [selectedModel, ...CASCADE_MODEL_IDS.filter((model) => model !== selectedModel)]
     : [...CASCADE_MODEL_IDS];
 
