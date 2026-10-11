@@ -201,6 +201,12 @@ export async function executeWithCascadeFallback(options: AiGenerationOptions): 
           continue;
         }
         if (res.status === 429) {
+          const providerDetail = errText.toLowerCase();
+          if (providerDetail.includes('free-models-per-day') || providerDetail.includes('free model requests per day')) {
+            cascadeLogs.push('⛔ OpenRouter free-model daily quota exhausted. Skipping remaining free models instead of retrying each one.');
+            cascadeLogs.push(`Provider detail: ${errText.slice(0, 180)}`);
+            break;
+          }
           const retryAfter = Number(res.headers.get('retry-after') || 0);
           const waitMs = Math.min(Math.max(retryAfter * 1000, 1500), 5000);
           cascadeLogs.push(`⚠️ Model ${currentModel} rate-limited (429). Waiting ${Math.round(waitMs / 1000)}s, then cascading...`);
