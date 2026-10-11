@@ -84,7 +84,7 @@ export const TOP_FREE_MODELS: TopModelDefinition[] = [
     description: 'Efficient instruction-following fallback for structured technical content.',
     isFree: true
   }
-];;;
+];
 
 export const CASCADE_MODEL_IDS = TOP_FREE_MODELS.map((model) => model.id);
 
