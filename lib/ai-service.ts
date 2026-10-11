@@ -19,47 +19,36 @@ export interface TopModelDefinition {
  */
 export const TOP_FREE_MODELS: TopModelDefinition[] = [
   {
-    id: 'openrouter/free',
-    name: 'OpenRouter: Free Router',
-    provider: 'OpenRouter',
-    badge: '★ Primary fallback · Auto-routes free models',
-    context: '200K context',
-    tokens: 'Free',
-    rank: 1,
-    description: 'Automatically routes to an available free model with support for the request capabilities.',
-    isFree: true
-  },
-  {
-    id: 'nvidia/nemotron-3-ultra-550b-a55b:free',
-    name: 'NVIDIA: Nemotron 3 Ultra (free)',
-    provider: 'NVIDIA',
-    badge: 'Reasoning & technical writing',
-    context: '1M context',
-    tokens: 'Free',
-    rank: 2,
-    description: 'Strong reasoning and long-context technical generation.',
-    isFree: true
-  },
-  {
-    id: 'poolside/laguna-s-2.1:free',
-    name: 'Poolside: Laguna S 2.1 (free)',
-    provider: 'Poolside',
-    badge: 'Technical fallback',
+    id: 'google/gemma-4-31b-it:free',
+    name: 'Google: Gemma 4 31B (free)',
+    provider: 'Google',
+    badge: '★ Primary · JSON article generation',
     context: '262K context',
     tokens: 'Free',
-    rank: 3,
-    description: 'Technical writing and coding-oriented free fallback.',
+    rank: 1,
+    description: 'General-purpose multilingual writing with JSON output support.',
     isFree: true
   },
   {
-    id: 'nvidia/nemotron-3.5-lightning:free',
-    name: 'NVIDIA: Nemotron 3.5 Lightning (free)',
-    provider: 'NVIDIA',
-    badge: 'Fast fallback',
-    context: '1M context',
+    id: 'apodex/apodex-1.1-mini:free',
+    name: 'Apodex 1.1 Mini (free)',
+    provider: 'Apodex',
+    badge: 'Reasoning fallback',
+    context: '262K context',
     tokens: 'Free',
-    rank: 4,
-    description: 'Fast general-purpose free model for high-throughput generation.',
+    rank: 2,
+    description: 'Reasoning-focused fallback for structured technical content.',
+    isFree: true
+  },
+  {
+    id: 'cohere/north-mini-code:free',
+    name: 'Cohere: North Mini Code (free)',
+    provider: 'Cohere',
+    badge: 'Technical fallback',
+    context: '256K context',
+    tokens: 'Free',
+    rank: 3,
+    description: 'Code-aware model suited to error-code explanations and troubleshooting.',
     isFree: true
   },
   {
@@ -69,21 +58,21 @@ export const TOP_FREE_MODELS: TopModelDefinition[] = [
     badge: 'Multilingual fallback',
     context: '256K context',
     tokens: 'Free',
-    rank: 5,
-    description: 'Multilingual instruction following and structured-output support.',
+    rank: 4,
+    description: 'Multilingual instruction following for technical article generation.',
     isFree: true
   },
   {
-    id: 'google/gemma-4-31b-it:free',
-    name: 'Google: Gemma 4 31B (free)',
-    provider: 'Google',
-    badge: 'Multilingual fallback',
+    id: 'poolside/laguna-xs-2.1:free',
+    name: 'Poolside: Laguna XS 2.1 (free)',
+    provider: 'Poolside',
+    badge: 'Temporary fallback · Retires Oct 31, 2026',
     context: '262K context',
     tokens: 'Free',
-    rank: 6,
-    description: 'Multilingual technical writing and structured JSON generation.',
+    rank: 5,
+    description: 'Temporary technical-writing fallback; scheduled to be discontinued October 31, 2026.',
     isFree: true
-  },
+  }
 ];
 
 export const CASCADE_MODEL_IDS = TOP_FREE_MODELS.map((model) => model.id);
@@ -149,7 +138,6 @@ export async function executeWithCascadeFallback(options: AiGenerationOptions): 
             ],
             temperature: typeof temperature === 'number' ? temperature : 0.7,
             max_tokens: 4096,
-            response_format: { type: 'json_object' }
           }),
           signal: controller.signal
         });
