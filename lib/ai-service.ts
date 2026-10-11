@@ -13,9 +13,9 @@ export interface TopModelDefinition {
 }
 
 /**
- * Keep this list limited to general-purpose text models that can handle the
- * JSON article-generation contract. The OpenRouter free router is included
- * first so the cascade is not tied to a stale provider/model combination.
+ * Prefer general-purpose free models suitable for technical articles.
+ * JSON is enforced by prompting and parsing so models that do not support
+ * OpenRouter's response_format option can still participate in the cascade.
  */
 export const TOP_FREE_MODELS: TopModelDefinition[] = [
   {
