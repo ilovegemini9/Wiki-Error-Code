@@ -84,17 +84,6 @@ export const TOP_FREE_MODELS: TopModelDefinition[] = [
     description: 'Multilingual technical writing and structured JSON generation.',
     isFree: true
   },
-  {
-    id: 'openai/gpt-oss-120b:free',
-    name: 'OpenAI: gpt-oss-120b (free)',
-    provider: 'OpenAI',
-    badge: 'Reasoning fallback',
-    context: '131K context',
-    tokens: 'Free',
-    rank: 7,
-    description: 'General-purpose reasoning model with structured-output support.',
-    isFree: true
-  }
 ];
 
 export const CASCADE_MODEL_IDS = TOP_FREE_MODELS.map((model) => model.id);
@@ -235,7 +224,7 @@ export async function executeWithCascadeFallback(options: AiGenerationOptions): 
       cascadeLogs.push('Activating Gemini server fallback...');
       const ai = new GoogleGenAI({ apiKey: geminiApiKey });
       const response = await ai.models.generateContent({
-        model: 'gemini-3.6-flash',
+        model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
           responseMimeType: 'application/json',
@@ -244,8 +233,14 @@ export async function executeWithCascadeFallback(options: AiGenerationOptions): 
       });
       const text = response.text?.trim() || '';
       if (text) {
-        cascadeLogs.push('✓ Gemini fallback completed successfully!');
-        return { text, usedModel: 'gemini-3.6-flash', cascadeLogs, success: true };
+        const normalizedText = text.replace(/^```json\\s*/i, '').replace(/^```\\s*/, '').replace(/\\s*```$/, '');
+        try {
+          JSON.parse(normalizedText);
+          cascadeLogs.push('✓ Gemini fallback returned valid JSON!');
+          return { text: normalizedText, usedModel: 'gemini-2.5-flash', cascadeLogs, success: true };
+        } catch {
+          cascadeLogs.push('❌ Gemini fallback returned malformed JSON.');
+        }
       }
     } catch (geminiErr: any) {
       cascadeLogs.push(`❌ Gemini fallback error: ${geminiErr?.message || 'Error'}`);
