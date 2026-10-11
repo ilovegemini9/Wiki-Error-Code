@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isAuthenticatedAdmin } from '@/lib/auth';
 import { getLanguageByCode } from '@/lib/languages';
 import { executeWithCascadeFallback } from '@/lib/ai-service';
 import { getSupabaseArticles, getSupabaseBrands, getSupabaseCategories, getSupabaseSettings } from '@/lib/supabase-db';
@@ -7,6 +6,20 @@ import { saveSupabaseBrand, saveSupabaseCategory } from '@/lib/supabase-admin';
 import { getOpenRouterApiKey } from '@/lib/provider-secrets';
 
 export const dynamic = 'force-dynamic';
+
+const KNOWN_MANUFACTURERS = ['Nissan', 'Ford', 'Toyota', 'Honda', 'Chevrolet', 'Hyundai', 'Subaru', 'BMW', 'Mercedes-Benz', 'Volkswagen', 'Audi', 'Kia', 'Mazda', 'Lexus', 'Tesla', 'Jeep', 'Dodge', 'Chrysler', 'Ram', 'Volvo', 'Microsoft', 'Apple', 'Google', 'Samsung', 'Sony', 'HP', 'Canon', 'Epson', 'Bosch', 'Whirlpool', 'LG', 'Nintendo', 'Xbox', 'PlayStation', 'Nginx', 'Cloudflare'];
+
+function sanitizeTitle(value: unknown, selectedBrand: string): string {
+  let title = String(value ?? '').trim();
+  const selected = selectedBrand.toLowerCase().trim();
+  if (!title || !selected) return title;
+  for (const manufacturer of KNOWN_MANUFACTURERS) {
+    if (manufacturer.toLowerCase() === selected) continue;
+    const escaped = manufacturer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    title = title.replace(new RegExp(`\\b${escaped}\\b(?:\\s+(?:vehicles?|cars?|systems?|devices?))?`, 'gi'), ' ');
+  }
+  return title.replace(/\s{2,}/g, ' ').replace(/\s+(?:and|or|&)\s*([,.;]|$)/gi, '$1').replace(/\s+([,:;])/g, '$1').trim();
+}
 
 function fallback(code: string, requestedBrand = '', requestedDevice = '', requestedCategory = '') {
   const c = code.toLowerCase().trim();
@@ -49,9 +62,7 @@ export async function POST(req: NextRequest) {
         if (Array.isArray(aiSuggestion.suggestedOutline)) {
           aiSuggestion.suggestedOutline = aiSuggestion.suggestedOutline.map((item: unknown) => String(item ?? '').replace(/^\s*\d+[.)]\s*/, '').trim());
         }
-        // Keep the user's selected context authoritative. AI providers sometimes ignore the
-        // prompt and return Microsoft/Windows for unrelated codes, so never overwrite a
-        // supplied brand, device, or category with model output.
+        aiSuggestion.suggestedTitle = sanitizeTitle(aiSuggestion.suggestedTitle, brand);
         suggestion = {
           ...suggestion,
           ...aiSuggestion,
@@ -62,6 +73,7 @@ export async function POST(req: NextRequest) {
       } catch (e) { console.error('AI suggestion fallback:', e); }
     }
 
+    suggestion.suggestedTitle = sanitizeTitle(suggestion.suggestedTitle, brand || suggestion.brand || '');
     const catSlug = String(suggestion.category || category || 'windows').toLowerCase().trim().replace(/[^a-z0-9_-]/g, '-');
     let categories = await getSupabaseCategories();
     let targetCat = categories.find(c => c.slug === catSlug);
@@ -71,7 +83,6 @@ export async function POST(req: NextRequest) {
       categories = [...categories, targetCat];
     }
 
-    // Normalize AI brand suggestions into individual brand records (never save "Brand A / Brand B" as one brand).
     const splitBrandNames = (value: unknown): string[] => {
       const values = Array.isArray(value) ? value : [value];
       return values.flatMap(item => String(item || '').split(/\s*(?:\/|,|\||;|\s+&\s+|\s+or\s+)\s*/i))
@@ -90,7 +101,6 @@ export async function POST(req: NextRequest) {
           const savedBrand = await saveSupabaseBrand({ name: brandName, slug: brandSlug, categoryId: targetCat.id, deviceTypes: [suggestion.device || device || 'General Device'], description: brandName + ' diagnostic solutions' });
           brands = [...brands, savedBrand];
         } catch (brandSaveError) {
-          // A concurrent suggestion may have created this brand already; continue with other suggestions.
           console.error('Could not auto-save suggested brand:', brandName, brandSaveError);
         }
       }
