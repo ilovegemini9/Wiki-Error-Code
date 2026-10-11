@@ -66,6 +66,7 @@ export default function SettingsAdminPage() {
       if (!res.ok || !data.success) throw new Error(data.error || 'Could not validate and save the key.');
       setOpenRouterKeyInput('');
       setHasOpenRouterApiKey(true);
+      setOpenRouterKeySource('database');
       setMessage({ type: 'success', text: data.message || 'OpenRouter key saved securely.' });
       await testOpenRouterConnection();
     } catch (e) {
