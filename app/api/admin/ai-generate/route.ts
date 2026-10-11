@@ -58,17 +58,17 @@ Return ONLY a VALID JSON object matching the application's Article shape. Includ
 
     let cleanedJson = generationResult.text.trim().replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
     const parsedArticle = JSON.parse(cleanedJson);
-    // Preserve the selected error code and clean repeated numbering from generated step labels.
+    // Preserve the selected error code and remove any manual numbering from generated labels.
     parsedArticle.errorCode = String(errorCode).trim();
-    const stripRepeatedNumbering = (value: unknown) => String(value ?? '').replace(/^(\s*\d+[.)]\s*){2,}/, '$1').trim();
+    const stripNumbering = (value: unknown) => String(value ?? '').replace(/^\s*\d+[.)]\s*/, '').trim();
     if (Array.isArray(parsedArticle.solutions)) {
       parsedArticle.solutions = parsedArticle.solutions.map((solution: any) => ({
         ...solution,
-        title: stripRepeatedNumbering(solution.title),
+        title: stripNumbering(solution.title),
       }));
     }
     if (Array.isArray(parsedArticle.causes)) {
-      parsedArticle.causes = parsedArticle.causes.map((cause: unknown) => stripRepeatedNumbering(cause));
+      parsedArticle.causes = parsedArticle.causes.map((cause: unknown) => stripNumbering(cause));
     }
     let seoScore = 70;
     if (parsedArticle.metaTitle?.length >= 40 && parsedArticle.metaTitle?.length <= 65) seoScore += 5;
