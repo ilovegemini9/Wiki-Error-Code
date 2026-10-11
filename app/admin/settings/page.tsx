@@ -23,6 +23,7 @@ export default function SettingsAdminPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasOpenRouterApiKey, setHasOpenRouterApiKey] = useState<boolean | null>(null);
+  const [openRouterKeySource, setOpenRouterKeySource] = useState<'database' | 'environment' | 'none' | null>(null);
   const [testingConnection, setTestingConnection] = useState(false);
   const [openRouterKeyInput, setOpenRouterKeyInput] = useState('');
   const [savingProviderKey, setSavingProviderKey] = useState(false);
@@ -37,6 +38,7 @@ export default function SettingsAdminPage() {
         if (!res.ok) throw new Error(data.error || 'Failed to load settings');
         if (!ignore && data.settings) setSettings({ ...DEFAULT_SETTINGS, ...data.settings, openRouterApiKey: '' });
         if (!ignore) setHasOpenRouterApiKey(Boolean(data.providerStatus?.hasOpenRouterApiKey));
+        if (!ignore) setOpenRouterKeySource(data.providerStatus?.openRouterKeySource || null);
       })
       .catch((e) => { if (!ignore) setMessage({ type: 'error', text: e instanceof Error ? e.message : 'Failed to load settings' }); })
       .finally(() => { if (!ignore) setLoading(false); });
