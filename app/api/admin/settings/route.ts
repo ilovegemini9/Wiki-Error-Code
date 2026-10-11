@@ -19,6 +19,8 @@ export async function GET() {
       settings,
       providerStatus: {
         hasOpenRouterApiKey: await hasOpenRouterApiKey(),
+        // Boolean only: never expose the Gemini secret itself.
+        hasGeminiApiKey: Boolean(process.env.GEMINI_API_KEY?.trim()),
         // Never expose secret material. This helps admins confirm which configured source is active.
         openRouterKeySource: await getOpenRouterApiKeySource(),
       },
