@@ -163,17 +163,21 @@ Required fields: errorCode, title, slug, metaTitle, metaDescription, shortDefini
       const settings = await getSupabaseSettings();
       const errMsg = err instanceof Error ? err.message : 'Server automation error';
       const quotaExhausted = /free-models-per-day|free model requests per day/i.test(errMsg);
+      const aiCascadeFailed = /All AI models in the cascade failed|GEMINI_API_KEY is not configured/i.test(errMsg);
+      const shouldPauseAutomation = quotaExhausted || aiCascadeFailed;
       await saveSupabaseAiGenerationLog({ status: 'failed', responseSummary: errMsg });
       const errorLog = {
         id: String(Date.now()),
         time: new Date().toLocaleTimeString(),
-        text: quotaExhausted
-          ? '⏸️ [AUTO ENGINE PAUSED] OpenRouter free-model daily quota is exhausted. Automation paused to prevent repeated failed requests. Add OpenRouter credits or configure GEMINI_API_KEY, then restart.'
+        text: shouldPauseAutomation
+          ? quotaExhausted
+            ? '⏸️ [AUTO ENGINE PAUSED] OpenRouter free-model daily quota is exhausted. Automation paused to prevent repeated failed requests. Restore provider quota or configure a working AI fallback, then restart.'
+            : '⏸️ [AUTO ENGINE PAUSED] All configured AI providers failed. Automation paused to prevent repeated failed requests. Configure a working provider/model, then restart.'
           : `❌ [SERVER AUTOMATION ERROR] ${errMsg}`,
         type: 'error' as const
       };
       await saveSupabaseSettings({
-        automationActive: quotaExhausted ? false : settings.automationActive,
+        automationActive: shouldPauseAutomation ? false : settings.automationActive,
         lastAutomationRunTime: new Date().toISOString(),
         automationLogs: [errorLog, ...(settings.automationLogs || []).slice(0, 49)]
       });
