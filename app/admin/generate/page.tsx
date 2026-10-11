@@ -108,7 +108,7 @@ export default function AiGeneratorPage() {
 
   // Automation Engine State
   const [isAutomationActive, setIsAutomationActive] = useState(false);
-  const [automationIntervalMinutes, setAutomationIntervalMinutes] = useState<number>(1); // 1 min, 60 (1h), 300 (5h), 1440 (24h)
+  const [automationIntervalMinutes, setAutomationIntervalMinutes] = useState<number>(30); // conservative default to reduce free-model rate limits
   const [automationLanguages, setAutomationLanguages] = useState<string[]>(['en', 'fr', 'es']);
   const [automationPublishStatus, setAutomationPublishStatus] = useState<'published' | 'draft'>('published');
   const [automationLogs, setAutomationLogs] = useState<Array<{ id: string; time: string; text: string; type: 'info' | 'success' | 'error' }>>([]);
@@ -872,9 +872,9 @@ export default function AiGeneratorPage() {
                 }}
                 className="w-full bg-slate-900 text-white border border-purple-500 p-2 font-mono text-xs rounded-xs focus:ring-1 focus:ring-amber-400"
               >
-                <option value={1}>⏱️ 1 minute (Test Rapid / Démo)</option>
+                <option value={30}>⏱️ 30 minutes (Recommended)</option>
                 <option value={60}>🕐 1 heure (1 Hour)</option>
-                <option value={300}>🕔 5 heures (5 Hours)</option>
+                <option value={120}>🕑 2 heures (2 Hours)</option>
                 <option value={1440}>📅 24 heures (24 Hours / Journalier)</option>
               </select>
               <p className="text-[11px] text-purple-300/80">
