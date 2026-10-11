@@ -22,11 +22,33 @@ export const TOP_FREE_MODELS: TopModelDefinition[] = [
     id: 'google/gemma-4-31b-it:free',
     name: 'Google: Gemma 4 31B (free)',
     provider: 'Google',
-    badge: '★ Primary · JSON article generation',
+    badge: '★ Primary · Technical articles',
     context: '262K context',
     tokens: 'Free',
     rank: 1,
-    description: 'General-purpose multilingual writing with JSON output support.',
+    description: 'Primary general-purpose model for clear, multilingual error explanations and structured SEO articles.',
+    isFree: true
+  },
+  {
+    id: 'cohere/north-mini-code:free',
+    name: 'Cohere: North Mini Code (free)',
+    provider: 'Cohere',
+    badge: 'Code specialist',
+    context: '256K context',
+    tokens: 'Free',
+    rank: 2,
+    description: 'Code-focused fallback for debugging steps, code snippets, and technical troubleshooting.',
+    isFree: true
+  },
+  {
+    id: 'google/gemma-4-26b-a4b-it:free',
+    name: 'Google: Gemma 4 26B A4B (free)',
+    provider: 'Google',
+    badge: 'Balanced fallback',
+    context: '262K context',
+    tokens: 'Free',
+    rank: 3,
+    description: 'Efficient instruction-following fallback for structured technical content.',
     isFree: true
   },
   {
@@ -36,44 +58,33 @@ export const TOP_FREE_MODELS: TopModelDefinition[] = [
     badge: 'Reasoning fallback',
     context: '262K context',
     tokens: 'Free',
-    rank: 2,
-    description: 'Reasoning-focused fallback for structured technical content.',
-    isFree: true
-  },
-  {
-    id: 'cohere/north-mini-code:free',
-    name: 'Cohere: North Mini Code (free)',
-    provider: 'Cohere',
-    badge: 'Technical fallback',
-    context: '256K context',
-    tokens: 'Free',
-    rank: 3,
-    description: 'Code-aware model suited to error-code explanations and troubleshooting.',
-    isFree: true
-  },
-  {
-    id: 'google/gemma-4-26b-a4b-it:free',
-    name: 'Google: Gemma 4 26B A4B (free)',
-    provider: 'Google',
-    badge: 'Multilingual fallback',
-    context: '256K context',
-    tokens: 'Free',
     rank: 4,
-    description: 'Multilingual instruction following for technical article generation.',
+    description: 'Reasoning-focused fallback for analyzing error causes and troubleshooting scenarios.',
     isFree: true
   },
   {
-    id: 'poolside/laguna-xs-2.1:free',
-    name: 'Poolside: Laguna XS 2.1 (free)',
-    provider: 'Poolside',
-    badge: 'Temporary fallback · Retires Oct 31, 2026',
-    context: '262K context',
+    id: 'thinkingmachines/inkling-small:free',
+    name: 'Thinking Machines: Inkling Small (free)',
+    provider: 'Thinking Machines',
+    badge: 'Experimental fallback',
+    context: '1.05M context',
     tokens: 'Free',
     rank: 5,
-    description: 'Temporary technical-writing fallback; scheduled to be discontinued October 31, 2026.',
+    description: 'Experimental fallback; use only if the provider accepts standard chat-completion requests and returns valid JSON.',
+    isFree: true
+  },
+  {
+    id: 'liquid/lfm2.5-2.6b:free',
+    name: 'LiquidAI: LFM2.5-2.6B (free)',
+    provider: 'LiquidAI',
+    badge: 'Lightweight last resort',
+    context: '66K context',
+    tokens: 'Free',
+    rank: 6,
+    description: 'Lightweight last-resort option for simpler structured extraction; verify technical answer quality before relying on it.',
     isFree: true
   }
-];
+];;
 
 export const CASCADE_MODEL_IDS = TOP_FREE_MODELS.map((model) => model.id);
 
