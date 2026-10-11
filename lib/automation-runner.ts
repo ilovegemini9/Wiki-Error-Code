@@ -162,9 +162,21 @@ Required fields: errorCode, title, slug, metaTitle, metaDescription, shortDefini
     try {
       const settings = await getSupabaseSettings();
       const errMsg = err instanceof Error ? err.message : 'Server automation error';
+      const quotaExhausted = /free-models-per-day|free model requests per day/i.test(errMsg);
       await saveSupabaseAiGenerationLog({ status: 'failed', responseSummary: errMsg });
-      const errorLog = { id: String(Date.now()), time: new Date().toLocaleTimeString(), text: `❌ [SERVER AUTOMATION ERROR] ${errMsg}`, type: 'error' as const };
-      await saveSupabaseSettings({ lastAutomationRunTime: new Date().toISOString(), automationLogs: [errorLog, ...(settings.automationLogs || []).slice(0, 49)] });
+      const errorLog = {
+        id: String(Date.now()),
+        time: new Date().toLocaleTimeString(),
+        text: quotaExhausted
+          ? '⏸️ [AUTO ENGINE PAUSED] OpenRouter free-model daily quota is exhausted. Automation paused to prevent repeated failed requests. Add OpenRouter credits or configure GEMINI_API_KEY, then restart.'
+          : `❌ [SERVER AUTOMATION ERROR] ${errMsg}`,
+        type: 'error' as const
+      };
+      await saveSupabaseSettings({
+        automationActive: quotaExhausted ? false : settings.automationActive,
+        lastAutomationRunTime: new Date().toISOString(),
+        automationLogs: [errorLog, ...(settings.automationLogs || []).slice(0, 49)]
+      });
     } catch {
       // Preserve the original automation failure if logging itself fails.
     }
