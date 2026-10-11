@@ -17,14 +17,47 @@ export interface TopModelDefinition {
  */
 export const TOP_FREE_MODELS: TopModelDefinition[] = [
   {
-    id: 'qwen/qwen3.8-27b:free',
-    name: 'Qwen: Qwen3.8 27B (free)',
-    provider: 'Qwen',
-    badge: '★ Primary · JSON capable',
-    context: '262K context',
+    id: 'openrouter/free',
+    name: 'OpenRouter: Free Models Router',
+    provider: 'OpenRouter',
+    badge: '★ Primary · automatic free routing',
+    context: 'Varies by model',
     tokens: 'Free',
     rank: 1,
-    description: 'General-purpose model with verified OpenRouter free endpoint and structured-output support.',
+    description: 'Automatically routes to an available free model; the selected provider can still be rate-limited.',
+    isFree: true
+  },
+  {
+    id: 'nvidia/nemotron-3-ultra-550b-a55b:free',
+    name: 'NVIDIA: Nemotron 3 Ultra (free)',
+    provider: 'NVIDIA',
+    badge: 'General-purpose',
+    context: '1M context',
+    tokens: 'Free',
+    rank: 2,
+    description: 'Large general-purpose free model for technical explanations and structured content.',
+    isFree: true
+  },
+  {
+    id: 'poolside/laguna-s-2.1:free',
+    name: 'Poolside: Laguna S 2.1 (free)',
+    provider: 'Poolside',
+    badge: 'Technical fallback',
+    context: '262K context',
+    tokens: 'Free',
+    rank: 3,
+    description: 'Free model suited to technical and coding-oriented tasks.',
+    isFree: true
+  },
+  {
+    id: 'nvidia/nemotron-3.5-lightning:free',
+    name: 'NVIDIA: Nemotron 3.5 Lightning (free)',
+    provider: 'NVIDIA',
+    badge: 'Fast fallback',
+    context: '1M context',
+    tokens: 'Free',
+    rank: 4,
+    description: 'High-throughput free model option for generating technical content.',
     isFree: true
   },
   {
@@ -34,40 +67,18 @@ export const TOP_FREE_MODELS: TopModelDefinition[] = [
     badge: 'Code specialist',
     context: '256K context',
     tokens: 'Free',
-    rank: 2,
+    rank: 5,
     description: 'Code-focused fallback for debugging steps and technical troubleshooting.',
-    isFree: true
-  },
-  {
-    id: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
-    name: 'NVIDIA: Nemotron 3 Nano Omni (free)',
-    provider: 'NVIDIA',
-    badge: 'General-purpose fallback',
-    context: '256K context',
-    tokens: 'Free',
-    rank: 3,
-    description: 'Multimodal general-purpose fallback; JSON is validated after generation.',
-    isFree: true
-  },
-  {
-    id: 'liquid/lfm-2.5-2.6b:free',
-    name: 'LiquidAI: LFM2.5-2.6B (free)',
-    provider: 'LiquidAI',
-    badge: 'Lightweight fallback',
-    context: '66K context',
-    tokens: 'Free',
-    rank: 4,
-    description: 'Lightweight fallback for structured extraction and simpler content.',
     isFree: true
   },
   {
     id: 'google/gemma-4-31b-it:free',
     name: 'Google: Gemma 4 31B (free)',
     provider: 'Google',
-    badge: 'General-purpose fallback',
+    badge: 'Multilingual fallback',
     context: '262K context',
     tokens: 'Free',
-    rank: 5,
+    rank: 6,
     description: 'Multilingual model for clear technical explanations; may be rate-limited upstream.',
     isFree: true
   },
@@ -78,7 +89,7 @@ export const TOP_FREE_MODELS: TopModelDefinition[] = [
     badge: 'Balanced fallback',
     context: '262K context',
     tokens: 'Free',
-    rank: 6,
+    rank: 7,
     description: 'Efficient instruction-following fallback for structured technical content.',
     isFree: true
   }
@@ -104,7 +115,7 @@ export interface AiGenerationResult {
 }
 
 /**
- * Resilient OpenRouter cascade with a Gemini server fallback.
+ * Resilient OpenRouter cascade with multiple free-model fallbacks.
  * Provider/model failures are isolated so the next model can be attempted.
  */
 export async function executeWithCascadeFallback(options: AiGenerationOptions): Promise<AiGenerationResult> {
@@ -127,7 +138,7 @@ export async function executeWithCascadeFallback(options: AiGenerationOptions): 
     for (let i = 0; i < modelQueue.length; i++) {
       const currentModel = modelQueue[i];
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
 
       try {
         cascadeLogs.push(`Attempting Model #${i + 1} (${currentModel})...`);
