@@ -7,6 +7,23 @@ import { getOpenRouterApiKey } from '@/lib/provider-secrets';
 
 export const dynamic = 'force-dynamic';
 
+const KNOWN_MANUFACTURERS = [
+  'Nissan', 'Ford', 'Toyota', 'Honda', 'Chevrolet', 'Hyundai', 'Subaru', 'BMW', 'Mercedes-Benz', 'Volkswagen', 'Audi', 'Kia', 'Mazda', 'Lexus', 'Tesla', 'Jeep', 'Dodge', 'Chrysler', 'Ram', 'Volvo',
+  'Microsoft', 'Apple', 'Google', 'Samsung', 'Sony', 'HP', 'Canon', 'Epson', 'Bosch', 'Whirlpool', 'LG', 'Nintendo', 'Xbox', 'PlayStation', 'Nginx', 'Cloudflare'
+];
+
+function sanitizeTitle(value: unknown, selectedBrand: string): string {
+  let title = String(value ?? '').trim();
+  const selected = selectedBrand.toLowerCase().trim();
+  if (!title || !selected) return title;
+  for (const manufacturer of KNOWN_MANUFACTURERS) {
+    if (manufacturer.toLowerCase() === selected) continue;
+    const escaped = manufacturer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    title = title.replace(new RegExp(`(?:\\s*(?:,|/|\\||&|and)\\s*)?${escaped}(?:\\s+(?:vehicles?|cars?|systems?|devices?))?`, 'gi'), ' ');
+  }
+  return title.replace(/\s{2,}/g, ' ').replace(/\s+([,:;])/g, '$1').trim();
+}
+
 export async function POST(req: NextRequest) {
   if (!(await isAuthenticatedAdmin())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   let errorCode = 'Unknown';
@@ -58,18 +75,16 @@ Return ONLY a VALID JSON object matching the application's Article shape. Includ
 
     let cleanedJson = generationResult.text.trim().replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
     const parsedArticle = JSON.parse(cleanedJson);
-    // Preserve the selected error code and remove any manual numbering from generated labels.
     parsedArticle.errorCode = String(errorCode).trim();
     const stripNumbering = (value: unknown) => String(value ?? '').replace(/^\s*\d+[.)]\s*/, '').trim();
     if (Array.isArray(parsedArticle.solutions)) {
-      parsedArticle.solutions = parsedArticle.solutions.map((solution: any) => ({
-        ...solution,
-        title: stripNumbering(solution.title),
-      }));
+      parsedArticle.solutions = parsedArticle.solutions.map((solution: any) => ({ ...solution, title: stripNumbering(solution.title) }));
     }
     if (Array.isArray(parsedArticle.causes)) {
       parsedArticle.causes = parsedArticle.causes.map((cause: unknown) => stripNumbering(cause));
     }
+    parsedArticle.title = sanitizeTitle(parsedArticle.title, String(brand));
+    parsedArticle.metaTitle = sanitizeTitle(parsedArticle.metaTitle, String(brand));
     let seoScore = 70;
     if (parsedArticle.metaTitle?.length >= 40 && parsedArticle.metaTitle?.length <= 65) seoScore += 5;
     if (parsedArticle.metaDescription?.length >= 120 && parsedArticle.metaDescription?.length <= 165) seoScore += 5;
