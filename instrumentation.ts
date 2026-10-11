@@ -1,11 +1,8 @@
+/**
+ * Automation is scheduled through the authenticated /api/cron/automation route.
+ * Do not start a process-local interval here: Vercel serverless instances are
+ * ephemeral and an interval can create duplicate, unreliable invocations.
+ */
 export async function register() {
-  if (process.env.NEXT_RUNTIME === 'nodejs') {
-    const phase = process.env.NEXT_PHASE || '';
-    if (phase.includes('build') || phase.includes('export') || phase === 'phase-production-build') {
-      return;
-    }
-    const { initAutomationBackgroundServer } = await import('@/lib/automation-runner');
-    initAutomationBackgroundServer();
-  }
+  // Intentionally no background timer.
 }
-
