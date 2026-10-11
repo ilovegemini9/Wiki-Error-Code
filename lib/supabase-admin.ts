@@ -38,18 +38,21 @@ export async function deleteSupabaseBrand(id: string): Promise<boolean> {
 export async function getSupabaseDashboardStats() {
   const today = new Date().toISOString().slice(0, 10);
   const since = new Date(Date.now() - 29 * 86400000).toISOString().slice(0, 10);
-  const [articleCountRes, publishedCountRes, draftCountRes, categoryCountRes, calculatorCountRes, viewsRes, recentArticlesRes, recentLogsRes, todayAiCountRes] = await Promise.all([
+  const todayStart = `${today}T00:00:00.000Z`;
+  const [articleCountRes, publishedCountRes, draftCountRes, categoryCountRes, brandsCountRes, viewsRes, recentArticlesRes, recentLogsRes, todayAiAttemptsRes, todayAiCompletedRes, todayAiFailedRes] = await Promise.all([
     client().from('articles').select('id', { count: 'exact', head: true }),
     client().from('articles').select('id', { count: 'exact', head: true }).eq('status', 'published'),
     client().from('articles').select('id', { count: 'exact', head: true }).eq('status', 'draft'),
     client().from('categories').select('id', { count: 'exact', head: true }),
     client().from('brands').select('id', { count: 'exact', head: true }),
     client().from('analytics_events').select('id', { count: 'exact', head: true }).eq('event_name', 'page_view').gte('created_at', since + 'T00:00:00.000Z').lte('created_at', today + 'T23:59:59.999Z'),
-    client().from('articles').select('id,slug,title,status,updated_at').order('updated_at', { ascending: false }).limit(10),
-    client().from('ai_generation_logs').select('id,model,error_code,created_at,status').order('created_at', { ascending: false }).limit(10),
-    client().from('ai_generation_logs').select('id', { count: 'exact', head: true }).gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
+    client().from('articles').select('id,error_code,slug,title,status,updated_at').order('updated_at', { ascending: false }).limit(10),
+    client().from('ai_generation_logs').select('id,error_code,brand,device,model,created_at,status').order('created_at', { ascending: false }).limit(10),
+    client().from('ai_generation_logs').select('id', { count: 'exact', head: true }).gte('created_at', todayStart),
+    client().from('ai_generation_logs').select('id', { count: 'exact', head: true }).eq('status', 'completed').gte('created_at', todayStart),
+    client().from('ai_generation_logs').select('id', { count: 'exact', head: true }).eq('status', 'failed').gte('created_at', todayStart),
   ]);
-  const results = [articleCountRes, publishedCountRes, draftCountRes, categoryCountRes, calculatorCountRes, viewsRes, recentArticlesRes, recentLogsRes, todayAiCountRes];
+  const results = [articleCountRes, publishedCountRes, draftCountRes, categoryCountRes, brandsCountRes, viewsRes, recentArticlesRes, recentLogsRes, todayAiAttemptsRes, todayAiCompletedRes, todayAiFailedRes];
   const firstError = results.find((result) => result.error)?.error;
   if (firstError) throw firstError;
   const totalViews = viewsRes.count || 0;
@@ -58,10 +61,12 @@ export async function getSupabaseDashboardStats() {
     publishedArticles: publishedCountRes.count || 0,
     draftArticles: draftCountRes.count || 0,
     categoriesCount: categoryCountRes.count || 0,
-    calculatorsCount: calculatorCountRes.count || 0,
+    brandsCount: brandsCountRes.count || 0,
     totalViews,
-    todayAiGenerations: todayAiCountRes.count || 0,
-    recentArticles: (recentArticlesRes.data || []).map((a: any) => ({ id: a.id, slug: a.slug || a.id, title: a.title, status: a.status })),
-    recentAiLogs: (recentLogsRes.data || []).map((l: any) => ({ id: l.id, taskType: l.error_code || 'AI task', model: l.model || 'unknown', createdAt: l.created_at, status: l.status === 'completed' ? 'completed' : 'failed' })),
+    todayAiAttempts: todayAiAttemptsRes.count || 0,
+    todayAiGenerations: todayAiCompletedRes.count || 0,
+    todayAiFailed: todayAiFailedRes.count || 0,
+    recentArticles: (recentArticlesRes.data || []).map((a: any) => ({ id: a.id, errorCode: a.error_code || '', slug: a.slug || a.id, title: a.title, status: a.status })),
+    recentAiLogs: (recentLogsRes.data || []).map((l: any) => ({ id: l.id, errorCode: l.error_code || 'AI task', brand: l.brand || '', device: l.device || '', model: l.model || 'unknown', createdAt: l.created_at, status: l.status === 'completed' ? 'completed' : 'failed' })),
   };
 }
