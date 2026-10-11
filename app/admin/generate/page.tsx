@@ -540,39 +540,14 @@ export default function AiGeneratorPage() {
     ]);
 
     try {
-      // Step A: Dynamic AI Auto-Fill / Suggestion resolution in target language
-      let targetBrand = pickedPreset.brand;
-      let targetDevice = pickedPreset.device;
-      let targetCat = pickedPreset.cat;
-      let targetKeywords = `${pickedPreset.code} fix, diagnostic manual, troubleshooting`;
+      // Use the curated preset directly. Calling ai-suggest first consumed a second
+      // free-model request for every article and made Auto hit OpenRouter quotas faster.
+      const targetBrand = pickedPreset.brand;
+      const targetDevice = pickedPreset.device;
+      const targetCat = pickedPreset.cat;
+      const targetKeywords = `${pickedPreset.code} fix, diagnostic manual, troubleshooting`;
 
-      try {
-        const suggestRes = await fetch('/api/admin/ai-suggest', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            errorCode: pickedPreset.code,
-            brand: pickedPreset.brand,
-            device: pickedPreset.device,
-            category: pickedPreset.cat,
-            language: langObj.code,
-            model
-          })
-        });
-        const suggestData = await suggestRes.json();
-        if (suggestData.success && suggestData.suggestions) {
-          if (suggestData.suggestions.brand) targetBrand = suggestData.suggestions.brand;
-          if (suggestData.suggestions.device) targetDevice = suggestData.suggestions.device;
-          if (suggestData.suggestions.category) targetCat = suggestData.suggestions.category;
-          if (suggestData.suggestions.keywords && suggestData.suggestions.keywords.length > 0) {
-            targetKeywords = suggestData.suggestions.keywords.join(', ');
-          }
-        }
-      } catch {
-        // Fallback to preset values
-      }
-
-      // Step B: Generate complete SEO article natively in target language
+      // Generate the article in a single AI request.
       const genRes = await fetch('/api/admin/ai-generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -651,15 +626,40 @@ export default function AiGeneratorPage() {
     } catch (err: unknown) {
       const errStr = new Date().toLocaleTimeString();
       const msg = err instanceof Error ? err.message : 'Automation failure';
+      const quotaExhausted = /free-models-per-day|free model requests per day/i.test(msg);
+      const logText = quotaExhausted
+        ? '⏸️ [AUTO PAUSED] OpenRouter free daily quota is exhausted. Auto paused to avoid repeated failed requests. It can be restarted after the quota resets, or after configuring an available provider.'
+        : `❌ [AUTOMATION ERROR] ${msg}`;
       setAutomationLogs(prev => [
         {
           id: String(Date.now() + 2),
           time: errStr,
-          text: `❌ [AUTOMATION ERROR] ${msg}`,
+          text: logText,
           type: 'error'
         },
         ...prev.slice(0, 49)
       ]);
+
+      if (quotaExhausted) {
+        setIsAutomationActive(false);
+        try {
+          await fetch('/api/admin/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              automationActive: false,
+              automationLogs: [{
+                id: String(Date.now() + 3),
+                time: errStr,
+                text: logText,
+                type: 'error'
+              }, ...automationLogs].slice(0, 50)
+            })
+          });
+        } catch {
+          // Local pause still prevents this browser from repeatedly consuming requests.
+        }
+      }
     } finally {
       setIsAutoGenerating(false);
     }
