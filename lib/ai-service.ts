@@ -233,7 +233,7 @@ export async function executeWithCascadeFallback(options: AiGenerationOptions): 
       });
       const text = response.text?.trim() || '';
       if (text) {
-        const normalizedText = text.replace(/^```json\\s*/i, '').replace(/^```\\s*/, '').replace(/\\s*```$/, '');
+        const normalizedText = text.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
         try {
           JSON.parse(normalizedText);
           cascadeLogs.push('✓ Gemini fallback returned valid JSON!');
