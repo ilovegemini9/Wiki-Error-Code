@@ -63,3 +63,18 @@ export async function hasOpenRouterApiKey(): Promise<boolean> {
   if (error) throw error;
   return typeof data?.[COLUMN] === 'string' && data[COLUMN].length > 0;
 }
+
+/** Returns the active key source without exposing any secret material. */
+export async function getOpenRouterApiKeySource(): Promise<'database' | 'environment' | 'none'> {
+  if (supabaseAdmin) {
+    const { data, error } = await (supabaseAdmin as any)
+      .from('global_settings')
+      .select(COLUMN)
+      .eq('id', 'global')
+      .maybeSingle();
+    if (error) throw error;
+    const encrypted = data?.[COLUMN];
+    if (typeof encrypted === 'string' && encrypted) return 'database';
+  }
+  return process.env.OPENROUTER_API_KEY?.trim() ? 'environment' : 'none';
+}
