@@ -90,7 +90,6 @@ export async function checkAndRunAutomationServer(): Promise<boolean> {
       const cleanP = p.code.toLowerCase().replace(/[^a-z0-9]/g, '');
       return !existing.some((a) => a.errorCode.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanP);
     });
-    // Never regenerate from the full preset pool when every code already exists.
     if (uncreated.length === 0) {
       const doneLog = { id: String(Date.now()), time: new Date().toLocaleTimeString(), text: 'ℹ️ [SERVER AUTOMATION] All configured preset error codes already have articles; skipped to prevent duplicates.', type: 'info' as const };
       await saveSupabaseSettings({ lastAutomationRunTime: new Date().toISOString(), automationLogs: [doneLog, ...(settings.automationLogs || []).slice(0, 49)] });
@@ -101,7 +100,9 @@ export async function checkAndRunAutomationServer(): Promise<boolean> {
     const languages = settings.automationLanguages?.length ? settings.automationLanguages : ['en', 'fr', 'es'];
     const targetLangCode = languages[Math.floor(Math.random() * languages.length)] || 'en';
     const langObj = getLanguageByCode(targetLangCode);
-    const modelToUse = settings.automationModel || settings.defaultAiModel || 'google/gemma-4-31b-it';
+    // Keep automatic generation on the exact same configured OpenRouter model/cascade as Manual Generate.
+    // Do not silently override it with a separate free-model default.
+    const modelToUse = settings.defaultAiModel || 'auto_cascade';
     const openRouterApiKey = await getOpenRouterApiKey();
     const { category, brand } = await resolveTaxonomy(preset);
 
@@ -163,7 +164,7 @@ Required fields: errorCode, title, slug, metaTitle, metaDescription, shortDefini
       const settings = await getSupabaseSettings();
       const errMsg = err instanceof Error ? err.message : 'Server automation error';
       const quotaExhausted = /free-models-per-day|free model requests per day/i.test(errMsg);
-      const aiCascadeFailed = /All AI models in the cascade failed|GEMINI_API_KEY is not configured/i.test(errMsg);
+      const aiCascadeFailed = /All AI models in the cascade failed/i.test(errMsg);
       const shouldPauseAutomation = quotaExhausted || aiCascadeFailed;
       await saveSupabaseAiGenerationLog({ status: 'failed', responseSummary: errMsg });
       const errorLog = {
@@ -171,8 +172,8 @@ Required fields: errorCode, title, slug, metaTitle, metaDescription, shortDefini
         time: new Date().toLocaleTimeString(),
         text: shouldPauseAutomation
           ? quotaExhausted
-            ? '⏸️ [AUTO ENGINE PAUSED] OpenRouter free-model daily quota is exhausted. Automation paused to prevent repeated failed requests. Restore provider quota or configure a working AI fallback, then restart.'
-            : '⏸️ [AUTO ENGINE PAUSED] All configured AI providers failed. Automation paused to prevent repeated failed requests. Configure a working provider/model, then restart.'
+            ? '⏸️ [AUTO ENGINE PAUSED] OpenRouter free-model daily quota is exhausted. Automation paused to prevent repeated failed requests. Wait for the quota reset or enable OpenRouter credits, then restart automation.'
+            : '⏸️ [AUTO ENGINE PAUSED] All configured OpenRouter models failed. Automation paused to prevent repeated failed requests. Check the OpenRouter key, model availability, and account quota, then restart.'
           : `❌ [SERVER AUTOMATION ERROR] ${errMsg}`,
         type: 'error' as const
       };

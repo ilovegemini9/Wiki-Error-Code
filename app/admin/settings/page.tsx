@@ -135,6 +135,7 @@ export default function SettingsAdminPage() {
               <span className={`h-2 w-2 rounded-full ${hasOpenRouterApiKey ? 'bg-green-600' : 'bg-amber-600'}`} />
               {hasOpenRouterApiKey === null ? 'Checking configuration…' : hasOpenRouterApiKey ? 'API key configured securely' : 'API key not configured'}
             </span>
+            {openRouterKeySource && <span className="text-[10px] font-mono text-gray-700">Active key source: {openRouterKeySource === 'database' ? 'encrypted Supabase key' : openRouterKeySource === 'environment' ? 'server environment variable' : 'none'}</span>}
           </div>
           <label className="block space-y-1">
             <span className="font-bold text-gray-900">OpenRouter API Key</span>
@@ -168,8 +169,8 @@ export default function SettingsAdminPage() {
 
         <section className="p-4 bg-gray-50 border border-gray-300 rounded-xs space-y-4">
           <h2 className="font-serif font-bold text-sm flex items-center gap-2"><Sparkles className="w-4 h-4" />AI Strategy</h2>
-          <label className="space-y-1 block"><span className="font-bold">Default AI Model Strategy</span><select value={settings.defaultAiModel || 'auto_cascade'} onChange={(e) => update('defaultAiModel', e.target.value)} className="w-full border border-gray-300 p-2 font-mono rounded-xs"><option value="auto_cascade">Auto Cascade (recommended)</option><option value="google/gemma-4-31b-it:free">Google Gemma 4 31B</option><option value="nvidia/nemotron-3-ultra-550b-a55b:free">NVIDIA Nemotron 3 Ultra</option><option value="google/gemma-4-26b-a4b-it:free">Google Gemma 4 26B</option><option value="cohere/north-mini-code:free">Cohere North Mini Code</option><option value="thinkingmachines/inkling-small:free">Thinking Machines Inkling Small (experimental)</option><option value="thinkingmachines/inkling:free">Thinking Machines Inkling (experimental)</option><option value="gemini-3.6-flash">Gemini 2.5 Flash Fallback (requires GEMINI_API_KEY)</option></select></label>
-          <p className="text-[10px] text-gray-500">Auto Cascade tries the selected model first (if one is selected), then free OpenRouter fallbacks, and finally Gemini when GEMINI_API_KEY is configured. Free endpoints can be rate-limited; Inkling endpoints are experimental and may reject standard chat-completion requests.</p>
+          <label className="space-y-1 block"><span className="font-bold">Default AI Model Strategy</span><select value={settings.defaultAiModel || 'auto_cascade'} onChange={(e) => update('defaultAiModel', e.target.value)} className="w-full border border-gray-300 p-2 font-mono rounded-xs"><option value="auto_cascade">Auto Cascade (recommended)</option><option value="google/gemma-4-31b-it:free">Google Gemma 4 31B</option><option value="nvidia/nemotron-3-ultra-550b-a55b:free">NVIDIA Nemotron 3 Ultra</option><option value="google/gemma-4-26b-a4b-it:free">Google Gemma 4 26B</option><option value="cohere/north-mini-code:free">Cohere North Mini Code</option><option value="thinkingmachines/inkling-small:free">Thinking Machines Inkling Small (experimental)</option><option value="thinkingmachines/inkling:free">Thinking Machines Inkling (experimental)</option></select></label>
+          <p className="text-[10px] text-gray-500">OpenRouter only: Auto Cascade tries available free OpenRouter models. Free endpoints can be rate-limited; Inkling endpoints are experimental and may reject standard chat-completion requests. Gemini is not used.</p>
         </section>
 
         <section className="p-4 bg-white border border-gray-300 rounded-xs space-y-4">

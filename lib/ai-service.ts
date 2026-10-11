@@ -202,7 +202,7 @@ export async function executeWithCascadeFallback(options: AiGenerationOptions): 
           const providerDetail = errText.toLowerCase();
           if (providerDetail.includes('free-models-per-day') || providerDetail.includes('free model requests per day')) {
             freeQuotaExhausted = true;
-            cascadeLogs.push('⛔ OpenRouter free-model daily quota exhausted. Skipping remaining free models and trying the configured Gemini fallback if available.');
+            cascadeLogs.push('⛔ OpenRouter free-model daily quota exhausted. Skipping remaining free models and stopping the cascade because all configured models use the free tier.');
             cascadeLogs.push(`Provider detail: ${errText.slice(0, 180)}`);
             break;
           }
@@ -229,49 +229,10 @@ export async function executeWithCascadeFallback(options: AiGenerationOptions): 
   }
 
 
-
-  // Free-model daily quota is account-wide; try a separately configured Gemini provider.
-  const geminiApiKey = process.env.GEMINI_API_KEY?.trim();
-  if (geminiApiKey) {
-    const geminiModel = 'gemini-2.5-flash';
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000);
-    try {
-      cascadeLogs.push(`Attempting configured Gemini fallback (${geminiModel})...`);
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${encodeURIComponent(geminiApiKey)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        cache: 'no-store',
-        signal: controller.signal,
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: typeof temperature === 'number' ? temperature : 0.7,
-            maxOutputTokens: 8192,
-            responseMimeType: 'application/json',
-          },
-        }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        const content = data.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text || '').join('').trim();
-        if (content) {
-          JSON.parse(content);
-          cascadeLogs.push(`✓ Gemini fallback (${geminiModel}) returned valid JSON.`);
-          return { text: content, usedModel: geminiModel, cascadeLogs, success: true };
-        }
-        cascadeLogs.push('⚠️ Gemini fallback returned an empty response.');
-      } else {
-        cascadeLogs.push(`⚠️ Gemini fallback failed (HTTP ${response.status}): ${(await response.text()).slice(0, 180)}`);
-      }
-    } catch (err: any) {
-      cascadeLogs.push(`⚠️ Gemini fallback failed: ${err?.message || 'Error'}`);
-    } finally {
-      clearTimeout(timeoutId);
-    }
-  } else if (freeQuotaExhausted) {
-    cascadeLogs.push('ℹ️ GEMINI_API_KEY is not configured; no non-OpenRouter fallback is available.');
+  // OpenRouter is the only configured provider. If its free quota is exhausted,
+  // fail clearly so automation can pause until the quota resets or billing changes.
+  if (freeQuotaExhausted) {
+    cascadeLogs.push('ℹ️ OpenRouter free quota is exhausted; no other provider is configured.');
   }
 
   throw new Error(`All AI models in the cascade failed or were suspended.\nLogs: ${cascadeLogs.join(' -> ')}`);

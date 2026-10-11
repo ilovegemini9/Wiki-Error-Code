@@ -54,7 +54,7 @@ function rowToSettings(row: any): Settings {
     siteName: row?.site_name || 'Wiki Error Code',
     siteUrl: row?.site_url || '',
     openRouterApiKey: '',
-    defaultAiModel: row?.default_ai_model || 'auto_cascade',
+    defaultAiModel: row?.default_ai_model === 'gemini-3.6-flash' ? 'auto_cascade' : (row?.default_ai_model || 'auto_cascade'),
     language: row?.language || 'en',
     googleAnalyticsId: row?.google_analytics_id || undefined,
     googleSearchConsoleTag: row?.google_search_console_tag || undefined,
@@ -64,7 +64,7 @@ function rowToSettings(row: any): Settings {
     automationActive: row?.automation_active ?? false,
     automationIntervalMinutes: row?.automation_interval_minutes || 60,
     automationPublishStatus: row?.automation_publish_status || 'published',
-    automationModel: row?.automation_model || row?.default_ai_model || undefined,
+    automationModel: [row?.automation_model, row?.default_ai_model].find((model) => model && model !== 'gemini-3.6-flash') || 'auto_cascade',
   };
 }
 
@@ -218,7 +218,7 @@ export async function saveSupabaseSettings(settings: Partial<Settings>): Promise
   const payload: Record<string, unknown> = { id: 'global', updated_at: new Date().toISOString() };
   if (settings.siteName !== undefined) payload.site_name = settings.siteName;
   if (settings.siteUrl !== undefined) payload.site_url = settings.siteUrl;
-  if (settings.defaultAiModel !== undefined) payload.default_ai_model = settings.defaultAiModel;
+  if (settings.defaultAiModel !== undefined) payload.default_ai_model = settings.defaultAiModel === 'gemini-3.6-flash' ? 'auto_cascade' : settings.defaultAiModel;
   if (settings.language !== undefined) payload.language = settings.language;
   if (settings.googleAnalyticsId !== undefined) payload.google_analytics_id = settings.googleAnalyticsId || null;
   if (settings.googleSearchConsoleTag !== undefined) payload.google_search_console_tag = settings.googleSearchConsoleTag || null;
@@ -228,7 +228,7 @@ export async function saveSupabaseSettings(settings: Partial<Settings>): Promise
   if (settings.automationActive !== undefined) payload.automation_active = settings.automationActive;
   if (settings.automationIntervalMinutes !== undefined) payload.automation_interval_minutes = settings.automationIntervalMinutes;
   if (settings.automationPublishStatus !== undefined) payload.automation_publish_status = settings.automationPublishStatus;
-  if (settings.automationModel !== undefined) payload.automation_model = settings.automationModel;
+  if (settings.automationModel !== undefined) payload.automation_model = settings.automationModel === 'gemini-3.6-flash' ? 'auto_cascade' : settings.automationModel;
   const { error } = await client.from('global_settings').upsert(payload, { onConflict: 'id' });
   if (error) throw error;
   return getSupabaseSettings();

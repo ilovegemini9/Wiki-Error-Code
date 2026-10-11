@@ -108,7 +108,6 @@ export default function AiGeneratorPage() {
 
   // Automation Engine State
   const [isAutomationActive, setIsAutomationActive] = useState(false);
-  const [hasGeminiApiKey, setHasGeminiApiKey] = useState<boolean | null>(null);
   const [automationIntervalMinutes, setAutomationIntervalMinutes] = useState<number>(30); // conservative default to reduce free-model rate limits
   const [automationLanguages, setAutomationLanguages] = useState<string[]>(['en', 'fr', 'es']);
   const [automationPublishStatus, setAutomationPublishStatus] = useState<'published' | 'draft'>('published');
@@ -151,7 +150,6 @@ export default function AiGeneratorPage() {
         if (artData.articles) setExistingArticles(artData.articles);
         if (catData.categories) setCategories(catData.categories);
         if (brandData.brands) setBrands(brandData.brands);
-        if (setData.providerStatus?.hasGeminiApiKey !== undefined) setHasGeminiApiKey(Boolean(setData.providerStatus.hasGeminiApiKey));
         if (setData.settings) {
           const s = setData.settings;
           if (s.automationActive) {
@@ -816,7 +814,7 @@ export default function AiGeneratorPage() {
               <div>
                 <h2 className="font-serif font-bold text-base text-amber-300 flex items-center gap-2">
                   <span>Génération & Publication 100% Automatique</span>
-                  <span className="ml-2 text-[10px] font-mono text-purple-200">Gemini fallback: {hasGeminiApiKey === null ? 'checking…' : hasGeminiApiKey ? 'configured' : 'NOT CONFIGURED (set GEMINI_API_KEY in Vercel Environment Variables)'}</span>
+                  <span className="ml-2 text-[10px] font-mono text-purple-200">Provider: OpenRouter only · free-model cascade</span>
                   {isAutomationActive ? (
                     <span className="text-[10px] font-mono bg-emerald-500 text-black px-2 py-0.5 rounded-xs font-extrabold uppercase animate-pulse flex items-center gap-1">
                       <Radio className="w-3 h-3" /> En Exécution (Running)
@@ -1396,11 +1394,10 @@ export default function AiGeneratorPage() {
               onChange={(e) => setModel(e.target.value)}
               className="w-full bg-white border border-gray-300 p-2 font-mono text-[11px] rounded-xs font-medium"
             >
-              <option value="auto_cascade">⚡ [RECOMMANDÉ] Cascade Auto: Top 3 Gratuits (Nemotron 3 Ultra ➔ Laguna S 2.1 ➔ Nemotron 3.5 Lightning ➔ Gemini)</option>
+              <option value="auto_cascade">⚡ [RECOMMANDÉ] OpenRouter Auto: cascade de modèles gratuits</option>
               <option value="nvidia/nemotron-3-ultra-550b-a55b:free">★ #1 NVIDIA: Nemotron 3 Ultra (free) - 550B MoE (1M context)</option>
               <option value="poolside/laguna-s-2.1:free">★ #2 Poolside: Laguna S 2.1 (free) - 118B Code & Diag (262K)</option>
               <option value="nvidia/nemotron-3.5-lightning:free">★ #3 NVIDIA: Nemotron 3.5 Lightning (free) - 30B MoE (1M context)</option>
-              <option value="gemini-3.6-flash">Google Gemini 3.6 Flash (Secours Serveur)</option>
             </select>
             <input
               type="range"
