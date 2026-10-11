@@ -135,6 +135,7 @@ export default function SettingsAdminPage() {
               <span className={`h-2 w-2 rounded-full ${hasOpenRouterApiKey ? 'bg-green-600' : 'bg-amber-600'}`} />
               {hasOpenRouterApiKey === null ? 'Checking configuration…' : hasOpenRouterApiKey ? 'API key configured securely' : 'API key not configured'}
             </span>
+            {openRouterKeySource && <span className="text-[10px] font-mono text-gray-700">Active key source: {openRouterKeySource === 'database' ? 'encrypted Supabase key' : openRouterKeySource === 'environment' ? 'server environment variable' : 'none'}</span>}
           </div>
           <label className="block space-y-1">
             <span className="font-bold text-gray-900">OpenRouter API Key</span>
