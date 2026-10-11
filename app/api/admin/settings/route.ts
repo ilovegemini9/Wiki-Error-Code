@@ -36,7 +36,6 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const settings = await saveSupabaseSettings(body);
-    checkAndRunAutomationServer().catch(() => {});
     return NextResponse.json({ success: true, settings });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Failed to save settings' }, { status: 500 });
