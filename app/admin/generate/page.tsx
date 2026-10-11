@@ -108,6 +108,7 @@ export default function AiGeneratorPage() {
 
   // Automation Engine State
   const [isAutomationActive, setIsAutomationActive] = useState(false);
+  const [hasGeminiApiKey, setHasGeminiApiKey] = useState<boolean | null>(null);
   const [automationIntervalMinutes, setAutomationIntervalMinutes] = useState<number>(30); // conservative default to reduce free-model rate limits
   const [automationLanguages, setAutomationLanguages] = useState<string[]>(['en', 'fr', 'es']);
   const [automationPublishStatus, setAutomationPublishStatus] = useState<'published' | 'draft'>('published');
@@ -150,6 +151,7 @@ export default function AiGeneratorPage() {
         if (artData.articles) setExistingArticles(artData.articles);
         if (catData.categories) setCategories(catData.categories);
         if (brandData.brands) setBrands(brandData.brands);
+        if (setData.providerStatus?.hasGeminiApiKey !== undefined) setHasGeminiApiKey(Boolean(setData.providerStatus.hasGeminiApiKey));
         if (setData.settings) {
           const s = setData.settings;
           if (s.automationActive) {
@@ -628,7 +630,7 @@ export default function AiGeneratorPage() {
       const msg = err instanceof Error ? err.message : 'Automation failure';
       const quotaExhausted = /free-models-per-day|free model requests per day/i.test(msg);
       const logText = quotaExhausted
-        ? '⏸️ [AUTO PAUSED] OpenRouter free daily quota is exhausted. Auto paused to avoid repeated failed requests. It can be restarted after the quota resets, or after configuring an available provider.'
+        ? `⏸️ [AUTO PAUSED] OpenRouter free daily quota is exhausted and the fallback did not complete. ${msg.slice(0, 700)}`
         : `❌ [AUTOMATION ERROR] ${msg}`;
       setAutomationLogs(prev => [
         {
