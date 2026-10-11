@@ -19,14 +19,14 @@ export interface TopModelDefinition {
  */
 export const TOP_FREE_MODELS: TopModelDefinition[] = [
   {
-    id: 'google/gemma-4-31b-it:free',
-    name: 'Google: Gemma 4 31B (free)',
-    provider: 'Google',
-    badge: '★ Primary · Technical articles',
+    id: 'qwen/qwen3.8-27b:free',
+    name: 'Qwen: Qwen3.8 27B (free)',
+    provider: 'Qwen',
+    badge: '★ Primary · JSON capable',
     context: '262K context',
     tokens: 'Free',
     rank: 1,
-    description: 'Primary general-purpose model for clear, multilingual error explanations and structured SEO articles.',
+    description: 'General-purpose model with verified OpenRouter free endpoint and structured-output support.',
     isFree: true
   },
   {
@@ -37,7 +37,40 @@ export const TOP_FREE_MODELS: TopModelDefinition[] = [
     context: '256K context',
     tokens: 'Free',
     rank: 2,
-    description: 'Code-focused fallback for debugging steps, code snippets, and technical troubleshooting.',
+    description: 'Code-focused fallback for debugging steps and technical troubleshooting.',
+    isFree: true
+  },
+  {
+    id: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
+    name: 'NVIDIA: Nemotron 3 Nano Omni (free)',
+    provider: 'NVIDIA',
+    badge: 'General-purpose fallback',
+    context: '256K context',
+    tokens: 'Free',
+    rank: 3,
+    description: 'Multimodal general-purpose fallback; JSON is validated after generation.',
+    isFree: true
+  },
+  {
+    id: 'liquid/lfm-2.5-2.6b:free',
+    name: 'LiquidAI: LFM2.5-2.6B (free)',
+    provider: 'LiquidAI',
+    badge: 'Lightweight fallback',
+    context: '66K context',
+    tokens: 'Free',
+    rank: 4,
+    description: 'Lightweight fallback for structured extraction and simpler content.',
+    isFree: true
+  },
+  {
+    id: 'google/gemma-4-31b-it:free',
+    name: 'Google: Gemma 4 31B (free)',
+    provider: 'Google',
+    badge: 'General-purpose fallback',
+    context: '262K context',
+    tokens: 'Free',
+    rank: 5,
+    description: 'Multilingual model for clear technical explanations; may be rate-limited upstream.',
     isFree: true
   },
   {
@@ -47,44 +80,11 @@ export const TOP_FREE_MODELS: TopModelDefinition[] = [
     badge: 'Balanced fallback',
     context: '262K context',
     tokens: 'Free',
-    rank: 3,
+    rank: 6,
     description: 'Efficient instruction-following fallback for structured technical content.',
     isFree: true
-  },
-  {
-    id: 'apodex/apodex-1.1-mini:free',
-    name: 'Apodex 1.1 Mini (free)',
-    provider: 'Apodex',
-    badge: 'Reasoning fallback',
-    context: '262K context',
-    tokens: 'Free',
-    rank: 4,
-    description: 'Reasoning-focused fallback for analyzing error causes and troubleshooting scenarios.',
-    isFree: true
-  },
-  {
-    id: 'thinkingmachines/inkling-small:free',
-    name: 'Thinking Machines: Inkling Small (free)',
-    provider: 'Thinking Machines',
-    badge: 'Experimental fallback',
-    context: '1.05M context',
-    tokens: 'Free',
-    rank: 5,
-    description: 'Experimental fallback; use only if the provider accepts standard chat-completion requests and returns valid JSON.',
-    isFree: true
-  },
-  {
-    id: 'liquid/lfm2.5-2.6b:free',
-    name: 'LiquidAI: LFM2.5-2.6B (free)',
-    provider: 'LiquidAI',
-    badge: 'Lightweight last resort',
-    context: '66K context',
-    tokens: 'Free',
-    rank: 6,
-    description: 'Lightweight last-resort option for simpler structured extraction; verify technical answer quality before relying on it.',
-    isFree: true
   }
-];;
+];;;
 
 export const CASCADE_MODEL_IDS = TOP_FREE_MODELS.map((model) => model.id);
 
@@ -148,7 +148,7 @@ export async function executeWithCascadeFallback(options: AiGenerationOptions): 
               { role: 'user', content: prompt }
             ],
             temperature: typeof temperature === 'number' ? temperature : 0.7,
-            max_tokens: 4096,
+            max_tokens: 8192,
           }),
           signal: controller.signal
         });
