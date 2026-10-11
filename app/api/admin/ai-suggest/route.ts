@@ -46,7 +46,9 @@ export async function POST(req: NextRequest) {
         });
         const clean = result.text.trim().replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
         const aiSuggestion = JSON.parse(clean);
-        if (Array.isArray(aiSuggestion.suggestedOutline)) aiSuggestion.suggestedOutline = aiSuggestion.suggestedOutline.map((item: unknown) => String(item ?? '').replace(/^\\s*\\d+[.)]\\s*/, '').trim());
+        if (Array.isArray(aiSuggestion.suggestedOutline)) {
+          aiSuggestion.suggestedOutline = aiSuggestion.suggestedOutline.map((item: unknown) => String(item ?? '').replace(/^\s*\d+[.)]\s*/, '').trim());
+        }
         // Keep the user's selected context authoritative. AI providers sometimes ignore the
         // prompt and return Microsoft/Windows for unrelated codes, so never overwrite a
         // supplied brand, device, or category with model output.
