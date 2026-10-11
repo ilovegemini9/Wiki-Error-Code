@@ -135,7 +135,12 @@ export default function SettingsAdminPage() {
           </div>
           <label className="block space-y-1">
             <span className="font-bold text-gray-900">OpenRouter API Key</span>
-            <input type="password" autoComplete="new-password" value={openRouterKeyInput} onChange={(e) => setOpenRouterKeyInput(e.target.value)} placeholder={hasOpenRouterApiKey ? '•••••••••••• (saved — paste a new key to replace it)' : 'Paste your sk-or-v1-… key here'} className="w-full border border-emerald-300 bg-white p-3 font-mono rounded-xs" />
+            <input type="password" autoComplete="new-password" value={openRouterKeyInput} onChange={(e) => setOpenRouterKeyInput(e.target.value)} placeholder={hasOpenRouterApiKey ? 'Paste a new key to replace the saved key' : 'Paste your sk-or-v1-… key here'} className="w-full border border-emerald-300 bg-white p-3 font-mono rounded-xs" />
+            {hasOpenRouterApiKey && (
+              <span role="status" className="mt-2 inline-flex items-center gap-2 rounded-xs border border-emerald-300 bg-white px-3 py-2 font-mono font-bold tracking-widest text-emerald-900">
+                <ShieldCheck className="h-4 w-4" /> •••••••••••• <span className="font-sans tracking-normal font-medium">Saved API key</span>
+              </span>
+            )}
           </label>
           <div className="flex flex-wrap items-center gap-3">
             <button type="button" onClick={saveProviderKey} disabled={savingProviderKey || !openRouterKeyInput.trim()} className="px-4 py-2 bg-emerald-900 hover:bg-emerald-800 text-white font-bold rounded-xs disabled:opacity-50">
