@@ -3,8 +3,11 @@ import { isAuthenticatedAdmin } from '@/lib/auth';
 import {
   deleteSupabaseArticle,
   getSupabaseArticles,
+  getSupabaseBrands,
+  getSupabaseCategories,
   saveSupabaseArticle,
 } from '@/lib/supabase-db';
+import { saveSupabaseBrand, saveSupabaseCategory } from '@/lib/supabase-admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,10 +51,53 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Error code and title are required' }, { status: 400 });
     }
 
-    const article = await saveSupabaseArticle(body);
+    // Automation may submit category/brand names or slugs instead of database IDs.
+    // Resolve or create taxonomy records before saving to avoid foreign-key failures.
+    const categoryInput = String(body.categoryId || body.category || 'general').trim();
+    const categorySlug = categoryInput.toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'general';
+    const categories = await getSupabaseCategories();
+    let category = categories.find((item) =>
+      item.id === categoryInput || item.slug.toLowerCase() === categorySlug
+    );
+    if (!category) {
+      category = await saveSupabaseCategory({
+        name: categoryInput.replace(/[-_]/g, ' ').replace(/\\b\\w/g, (c: string) => c.toUpperCase()),
+        slug: categorySlug,
+        icon: 'FolderTree',
+        description: `Troubleshooting articles for ${categoryInput}.`,
+        language: String(body.language || 'en'),
+      });
+    }
+
+    const brandInput = String(body.brandId || body.brand || 'General').trim();
+    const brandSlug = brandInput.toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || `brand-${Date.now()}`;
+    const brands = await getSupabaseBrands();
+    let brand = brands.find((item) =>
+      item.id === brandInput ||
+      item.slug.toLowerCase() === brandSlug ||
+      item.name.toLowerCase() === brandInput.toLowerCase()
+    );
+    if (!brand) {
+      brand = await saveSupabaseBrand({
+        name: brandInput,
+        slug: brandSlug,
+        categoryId: category.id,
+        deviceTypes: body.deviceType ? [String(body.deviceType)] : [],
+        description: `${brandInput} troubleshooting and diagnostic information.`,
+        language: String(body.language || 'en'),
+      });
+    }
+
+    const article = await saveSupabaseArticle({
+      ...body,
+      categoryId: category.id,
+      brandId: brand.id,
+    });
     return NextResponse.json({ success: true, article });
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : 'Failed to save article' }, { status: 500 });
+    const message = e instanceof Error ? e.message : 'Failed to save article';
+    console.error('[ADMIN SAVE ARTICLE]', message);
+    return NextResponse.json({ error: message || 'Failed to save article' }, { status: 500 });
   }
 }
 
